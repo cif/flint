@@ -1,0 +1,31 @@
+{
+  "author"         : "Ben Ipsen <email@benipsen.com>",
+  "name"           : "flint",
+  "description"    : "Full Stack Coffeescript Development",
+  "version"        : "0.0.1",
+
+  "repository"     : {
+    "type"           : "git",
+    "url"            : "http://github.com/cif/flint"
+  },
+
+  "main"           : "./lib/flint.js",
+    "directories"    : {
+    "lib"            : "./lib/"
+  },
+
+  "bin"            : {
+    "flint": "./bin/flint"
+  },
+
+  "engines"        : {
+    "node"           : "*"
+  },
+  
+  "dependencies"   : {
+    "coffee-toaster"  : "*",
+    "supervisor"      : "*",
+    "handlebars"      : "*",
+    "stylus"          : "*"
+  }
+}
