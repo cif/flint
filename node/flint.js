@@ -3,7 +3,7 @@
 
 // require the things we need
 optimist = require('optimist');
-path = require('path')
+path = require('path');
 
 brewer = require('./brewer');
 styler = require('./styler');
@@ -20,7 +20,7 @@ argv = optimist
   .describe('c','Compiles coffee, stylus, handlebars, templates and dependencies')
   .alias('f','file')
   .describe('f','Path to the flint configuration file')   
-  .default('f','./flint.js')
+  .default('f','flint.js')
   .alias('b','build')
   .describe('b','Rebuilds the core flint javacript library')
   .argv
@@ -29,7 +29,8 @@ argv = optimist
 // load the configuration file and configure our tools
 try { 
   
-  flint = require(argv.file)
+  cwd = process.cwd();
+  flint = require(cwd + '/' + argv.file)
   base = path.dirname(argv.file) + '/'
 
  // dependencies - todo, people are going to want to specify a load order for these 
@@ -78,87 +79,10 @@ try {
   
   }
   
-  
-
 } catch (e) { 
 
   console.log('[flint] configuration file missing or currupted: ' + argv.file + '\n')
   console.log(optimist.help())
+  console.log(e)
   
 }
-
-/*
-
-if( argv.watch ) {
-  // compile and watch mode
-  depends.watch()
-  brewer.watch()
-  styler.watch()
-  ride.watch()
-
-} 
-
-if ( argv.compile ) {
-  // compile it up
-  depends.concat()
-  brewer.compile()
-  styler.compile()
-  ride.compile()
-  
-}
-
-
-if( !argv.compile && !argv.watch && !argv.build ){
-  
-  console.log(optimist.help())
-  
-} 
-
-
-if (argv.build){
-  
-  console.log('building...')
-  
-} 
-  
-
-*/
-
-/*
-
-// wrap dependencies
-//depencency = { 
-// in: '/Users/benipsen/Sites/flybook/app/vendor',
-// out: '/Users/benipsen/Sites/flybook/public/javascript/dependencies.js'
-//}
-//depend.on(depencency);
-depends.watch();
-
-
-// brew the coffee
-//coffee_maker = {
-//  in: '/Users/benipsen/Sites/flybook/app/coffee',
-//  out: '/Users/benipsen/Sites/flybook/public/javascript/application.js'
-//}
-//brew.configure(coffee_maker);
-brewer.watch();
-
-// run the styler
-//style_guide = {
-//  in:'/Users/benipsen/Sites/flybook/app/stylus/',
-//  out:'/Users/benipsen/Sites/flybook/public/application.css'
-//}
-//style.configure(style_guide)
-styler.watch()
-
-
-// ride on the handlebars
-//bike = {
-//  in:'/Users/benipsen/Sites/flybook/app/handlebars/',
-//  out:'/Users/benipsen/Sites/flybook/public/javascript/templates.js',
-//  minify: true
-//}
-//ride.configure(bike)
-ride.watch()
-
-*/
