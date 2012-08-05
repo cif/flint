@@ -29,60 +29,92 @@ argv = optimist
 // load the configuration file and configure our tools
 try { 
   
-  cwd = process.cwd();
-  flint = require(cwd + '/' + argv.file)
-  base = path.dirname(argv.file) + '/'
+ if(argv.compile || argv.watch) {
+    
+    cwd = process.cwd();
+    flint = require(cwd + '/' + argv.file)
+    base = path.dirname(argv.file) + '/'
 
- // dependencies - todo, people are going to want to specify a load order for these 
-  depencency = {} 
-  depencency.in =  base + flint.config.dependencies
-  depencency.out = base + flint.config.compile_dependencies_to
-  depend.on(depencency)
+   // dependencies - todo, people are going to want to specify a load order for these 
+    depencency = {} 
+    depencency.in =  base + flint.config.dependencies
+    depencency.out = base + flint.config.compile_dependencies_to
+    depend.on(depencency)
 
- // coffee destinations and template engine
-  coffee_maker = {}
-  coffee_maker.in =  base + flint.config.coffeescript
-  coffee_maker.out = base + flint.config.compile_coffee_to
-  coffee_maker.template_engine = flint.config.template_engine
-  brewer.configure(coffee_maker)
+   // coffee destinations and template engine
+    coffee_maker = {}
+    coffee_maker.in =  base + flint.config.coffeescript
+    coffee_maker.out = base + flint.config.compile_coffee_to
+    coffee_maker.template_engine = flint.config.template_engine
+    brewer.configure(coffee_maker)
 
- // stylus
-  artist = {}
-  artist.in =  base + flint.config.stylus
-  artist.out = base + flint.config.compile_stylus_to
-  styler.configure(artist)
+   // stylus
+    artist = {}
+    artist.in =  base + flint.config.stylus
+    artist.out = base + flint.config.compile_stylus_to
+    styler.configure(artist)
 
- // templates 
-  plates = {}
-  plates.in =  base + flint.config.templates
-  plates.out = base + flint.config.compile_templates_to
-  plates.engine = flint.config.template_engine
-  plater.configure(plates)
+   // templates 
+    plates = {}
+    plates.in =  base + flint.config.templates
+    plates.out = base + flint.config.compile_templates_to
+    plates.engine = flint.config.template_engine
+    plater.configure(plates)
 
-  if ( argv.compile ) {
+    if ( argv.compile ) {
   
-    // compile it up
-    depend.concat()
-    brewer.compile()
-    styler.compile()
-    plater.compile()
+      // compile it up
+      depend.concat()
+      brewer.compile()
+      styler.compile()
+      plater.compile()
+  
+    }
+  
+    if ( argv.watch ) {
+  
+      // compile it up
+      depend.watch()
+      brewer.watch()
+      styler.watch()
+      plater.watch()
+  
+    }
   
   }
   
-  if ( argv.watch ) {
-  
-    // compile it up
-    depend.watch()
-    brewer.watch()
-    styler.watch()
-    plater.watch()
-  
+   // this uses brewer to rebuilds the vendor/flint.js file from the core lib
+  if( argv.build ) {
+    
+     if(argv.file){
+      
+        cwd = process.cwd();
+        flint = require(cwd + '/' + argv.file)
+        base = path.dirname(argv.file) + '/'
+        dest = base + flint.config.build_target + '/flint.js'
+      
+      } else {
+        
+        dest = './shell/vendor/flint.js'
+        
+      }
+     
+     coffee_maker = {}
+     coffee_maker.in =  __dirname + '/../core/'
+     coffee_maker.out = dest;
+     coffee_maker.build = true
+     coffee_maker.template_engine = false
+     brewer.configure(coffee_maker)
+     brewer.compile()
+    
   }
+  
   
 } catch (e) { 
 
   console.log('[flint] configuration file missing or currupted: ' + argv.file + '\n')
-  console.log(optimist.help())
   console.log(e)
+  console.log(optimist.help())
+  
   
 }

@@ -68,24 +68,35 @@ fs = require('fs');
    
   }
   
+  var addToCss = function(css){
+    config.css.push(css)
+
+  }
+  
   var buildOutput = function(files){
     
     try {
       //read in all the styles
-      styl = []
+      config.css = []
       for(var f = 0; f < files.length; f++){
-        styl.push( fs.readFileSync(files[f], 'utf8') ); 
-      }
+        
+        data = fs.readFileSync(files[f], 'utf8');
+     
+          stylus.render (data, {filename: files[f]}, function(err, css){
+        
+              if (err) throw err;
+        
+              addToCss(css)
+        
+        
+            });
       
-      // run it through the styler
-      stylus.render (styl.join(''), {filename: 'application.css'}, function(err, css){
-        
-        if (err) throw err;
-        
-        writeCssFile(css);
-        
-        
-      });
+         }
+         
+         // run it through the styler
+         writeCssFile(config.css.join('\n'));
+      
+      
       
     } catch (e) { 
       

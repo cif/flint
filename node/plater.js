@@ -77,7 +77,7 @@ fs = require('fs');
       
       console.log(color.blue + '[plater] change detected to file, recompiling' + color.reset);
       compileTemplates();
-  
+        
   };
   
   
@@ -111,7 +111,7 @@ fs = require('fs');
       
           handlebars = require('handlebars');
           output.push('\n  var template = Handlebars.template, templates = Handlebars.templates = Handlebars.templates || {};\n');
-          output.push('\n  Handlebars.partials = Handlebars.templates;\n')
+          output.push('\n  Handlebars.partials = Handlebars;\n')
           compile_template = handlebars.precompile
         } 
         
@@ -180,6 +180,10 @@ fs = require('fs');
     
     // unwatch all the files
     unwatchAll();
+    
+    // watch the directory itself for changes
+    if(watch)
+      fs.watch(dir, directoryHasChanged)
     
     //read files in the directory
     readTemplatesDirectory(dir, function(err, files) {
