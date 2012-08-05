@@ -120,7 +120,6 @@ fs = require('fs');
         } catch (e) {
             
           console.log(color.red + '[styler] Cound not read stylus directory: ' + dir + color.reset);
-          console.log(e);
           
         }
         
@@ -139,7 +138,7 @@ fs = require('fs');
     
     } catch(e){
     
-        console.log(color.red + '[styler] ERROR! Destination file or directory does not exist.' + color.reset + '\n:' + e);
+        console.log(color.red + '[styler] ERROR! Destination file or directory does not exist.' + color.reset);
     
     }
     

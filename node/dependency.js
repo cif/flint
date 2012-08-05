@@ -39,34 +39,38 @@ var concat = function(watch){
 var readThenWrite = function(){
   
   files = []
-  try {
-    
+
     // loop over directory and compile files
     
     fs.readdir( deps.in, function( err, list ) {
     
-     for(var l = 0; l < list.length; l++){
-       
-       js = fs.readFileSync(deps.in + '/' + list[l], 'utf8');
-       files.push(js);
-      
-     }
+     try {
+       if (err) throw err;
      
-     write(files);
+       for(var l = 0; l < list.length; l++){
+        
+         if(list[l] != '.DS_Store'){
+           js = fs.readFileSync(deps.in + '/' + list[l], 'utf8');
+           files.push(js);
+         }
+      
+       }
+     
+       write(files);
+     
+     } catch (e) {
+       
+       console.log(color.red + '[dependency] ERROR: could not read dependencies from  : ' + deps.in + color.reset)
+       
+     }
     
     });
   
-  } catch (e) {
-    
-    console.log(color.red + '[dependency] ERROR: could not read dependencies from  : ' + deps.in + color.reset)
-    
-  }
   
 }
 
 var write = function(files){
    
-  
   try{
   
      fs.writeFileSync(deps.out, files.join('\n'), 'utf8');
@@ -74,7 +78,7 @@ var write = function(files){
     
   } catch (e) {
     
-    console.log(color.red + '[dependency] ERROR: could not write file to : ' + deps.out + color.reset + e);
+    console.log(color.red + '[dependency] ERROR: could not write file to : ' + deps.out + color.reset);
     
   }
   
@@ -83,4 +87,4 @@ var write = function(files){
 
 exports.on = function(config) { deps = config; }
 exports.watch = function(){ concat(true); };
-exports.conact = concat;
+exports.concat = concat;
