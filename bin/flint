@@ -1,0 +1,11 @@
+#!/usr/bin/env node
+
+var path = require('path');
+var fs = require('fs');
+var node = path.join(path.dirname(fs.realpathSync(__filename)), '../node');
+
+flint = require(node + '/flint')
+
+
+
+

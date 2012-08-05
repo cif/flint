@@ -1,10 +1,11 @@
-flint
-=====
+# flint
+================
 
-2 simple goals of this project: 
+Full stack coffee script development.  This is in it's very early stages, the client side compile and watch tools are the only thing working right now. 
 
-1. Single model definitions for Backbone Client and Server Flatiron-based Modeling
+STAY TUNED.
 
-2. Built-in routing conventions for server side modeling
+### Install:
 
+		npm install -g flint
 

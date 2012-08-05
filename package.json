@@ -9,23 +9,23 @@
     "url"            : "http://github.com/cif/flint"
   },
 
-  "main"           : "./lib/flint.js",
+  "main"           : "./node/flint.js",
     "directories"    : {
-    "lib"            : "./lib/"
+    "lib"            : "./node/"
   },
 
   "bin"            : {
-    "flint": "./bin/flint"
+    "handlebar-rider": "./bin/flint"
   },
 
   "engines"        : {
-    "node"           : "*"
+    "node"           : ">= 0.4.9"
   },
   
   "dependencies"   : {
-    "coffee-toaster"  : "*",
-    "supervisor"      : "*",
-    "handlebars"      : "*",
-    "stylus"          : "*"
+    "handlebar-rider"  : ">= 0.1.10",
+    "stylus" : ">= 0.22.1",
+    "coffee-script"   : "1.1.3",
+    "express-resource"  : ">= 0.2.4"
   }
 }
