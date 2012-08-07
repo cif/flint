@@ -7,7 +7,7 @@ class List extends Backbone.View
     # common UI events
     'click .edit' : 'edit'
     'click .delete' : 'delete'
-    'click .create,.new' : 'create'
+    'click .create' : 'create'
     'click .view' : 'read'
     
     # bonus help viwe rendering to make your apps even better!
@@ -24,29 +24,35 @@ class List extends Backbone.View
   
   
   render: (template, data) =>
-  
+    
     @template = template if template
     @data = data if data    
-    @pre_render()
+    @before()
     
     if @template
       $(@el).html tmpl[@template](@data)
     else
-      console.log('flint List class error: @template is undefined.')
+      console.log('WARNING Flint.List: @template is undefined.')
     
+    # make sortable
     if @sortable
-      @sortable = $('.sortable').sortable({update:@sorted});
+      config = 
+        update: @sorted
+      if @sort_handle
+        config.handle = @sort_handle
+          
+      @sortable = $('.sortable').sortable config
     
-    @post_render()
+    @after()
     this  
 
     
   #
   #  pre, post render
   #  
-  pre_render: ->
+  before: ->
     
-  post_render: ->
+  after: ->
   
   #
   #  crud, cred in this case ;-)
@@ -55,15 +61,33 @@ class List extends Backbone.View
     @trigger 'create'
   
   read: (e) ->
-    id = $(e.target).parent().parent().attr('id')
-    @trigger('read', id)
+    # bubble up the target parents until we find an id
+    target = $(e.target)
+    id = target.attr 'id'
+    while _.isUndefined id
+      target = target.parent()
+      id = target.attr 'id'
+      
+    @trigger 'read', id
       
   edit: (e) ->
-    id = $(e.target).parent().parent().attr('id')
-    @trigger('edit', id)
+    # bubble up the target parents until we find an id
+    target = $(e.target)
+    id = target.attr 'id'
+    while _.isUndefined id
+      target = target.parent()
+      id = target.attr 'id'
+      
+    @trigger 'edit', id
     
   delete: (e) ->
-    id = $(e.target).parent().parent().attr('id')   
+    # bubble up the target parents until we find an id
+    target = $(e.target)
+    id = target.attr 'id'
+    while _.isUndefined id
+      target = target.parent()
+      id = target.attr 'id'
+       
     model = @collection.get(id)
     @collection.remove(model)
       
@@ -95,8 +119,8 @@ class List extends Backbone.View
   # renders/closes help text if @help_template is provided
   #   
   help: (help=true) =>
-    if @help_template
-      $(@el).html tmpl[@help_template]({help:help}) 
+    if @template_help
+      $(@el).html tmpl[@template_help]({help:help}) 
   
   close_help: =>
     @render(false)

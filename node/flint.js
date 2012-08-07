@@ -10,7 +10,6 @@ styler = require('./styler');
 depend = require('./dependency');
 plater = require('./plater');
 
-
 // get optimist options
 argv = optimist
   .usage('\nflint.\nFull stack coffeescript development \n\nInstructions: ')
@@ -45,7 +44,6 @@ try {
     coffee_maker = {}
     coffee_maker.in =  base + flint.config.coffeescript
     coffee_maker.out = base + flint.config.compile_coffee_to
-    coffee_maker.template_engine = flint.config.template_engine
     brewer.configure(coffee_maker)
 
    // stylus

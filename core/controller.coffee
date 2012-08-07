@@ -2,10 +2,10 @@
 class Controller extends Backbone.Router
   
   # configuration  
-  template        : 'model'
-  create_postfix  : ''
-  edit_postfix    : ''
-  list_postfix    : '_list'
+  template_create : 'forms/create'
+  template_edit   : 'forms/edit'
+  template_list   : 'forms/list'
+  template_help   : false
       
   collection      : false
   model           : false  
@@ -14,9 +14,11 @@ class Controller extends Backbone.Router
   list_el         : '#app'
   sortable        : false  
   sorted_url      : false
+  sort_handle     : false
   
   form            : 'Form'
   form_el         : '#app'
+  valid_changes   : true
   
   _messages:
     created        : '{{name}} has been created.'
@@ -36,20 +38,25 @@ class Controller extends Backbone.Router
       if _.isUndefined(@messages[key])
         @messages[key] = val
          
-    list = if views[@list] then views[@list] else bangup[@list]
+    list = if views[@list] then views[@list] else Flint[@list]
     if !list
       throw new Error('List class "'+@list+'" does not exists')
     
-    form = if views[@form] then views[@form] else bangup[@form]
+    form = if views[@form] then views[@form] else Flint[@form]
     if !form
       throw new Error('Form class "'+@form+'" does not exists')
                   
     @list = new list { el: @list_el }, @sortable
+    @list.sort_handle = @sort_handle
+    @list.template = @template_list    
+    @list.template_help = @template_help if @template_help
     @list.collection = if @collection then new collections[@collection] else new Backbone.Collection
-    @list.collection.model = if @model then models[@model] else Backbone.Model
+    @list.collection.model = if @model then models[@model] else Backbone.Model    
+      
     @form = new form { el: @form_el } 
     @form.model = new @list.collection.model
     @form.collection = @list.collection
+    @form.valid_changes = @valid_changes
     
     # register this with the application so unbinding is called appropriately
     app.register(@) 
@@ -66,7 +73,6 @@ class Controller extends Backbone.Router
   #  binds the application components to common events
   #
   bind: =>
-    
     @list.on 'create', @create
     @list.on 'edit', @edit
     @list.on 'sort', @sorted
@@ -79,9 +85,11 @@ class Controller extends Backbone.Router
     @form.on 'delete', @deleted
     @form.on 'saved', @saved
     @form.on 'canceled', => @modelChanged = false
-    @form.model.on 'error', @error unless !@form.model
+    @form.model.on 'error', @error
     
-    # backwards bind to the main history listener
+    @.on 'saved deleted destroyed delete_undone sort_undone destroy_error', @update
+    
+    #  bind to the app navigation/history listener
     app.on 'navigate', @navigated 
   
   
@@ -90,10 +98,11 @@ class Controller extends Backbone.Router
   #
   
   unbind: =>
-
     @list.off 'create edit sort'
     @list.collection.off 'add remove change error'
-    @form.off 'delete saved canceled error'
+    @form.off 'delete saved canceled'
+    @form.model.off 'error'
+    @.off 'saved deleted destroyed delete_undone sort_undone destroy_error'
     
     # backwards unbinding to application
     app.off 'navigate'
@@ -136,10 +145,13 @@ class Controller extends Backbone.Router
           callback model
             
   #
-  #  begins the creation of a new model by rending template_new.hb
+  #  begins the creation of a new model by rending form/create.hb
   #
   create: =>
-    @form.render @template + @create_postfix, {}, new @list.collection.model({sort_order: @list.collection.length}) 
+    @form.model = new @list.collection.model({sort_order: @list.collection.length})
+    @unbind()
+    @bind()
+    @form.render @template_create, {}, @form.model
     @trigger 'create', @
   
   #
@@ -149,11 +161,11 @@ class Controller extends Backbone.Router
     @trigger 'added', model
     app.notifications.notify('Saving...')
     model.save model, success: =>
-          tmpl = Handlebars.compile(@messages.created)
-          message = tmpl(model.attributes)
-          app.notifications.notify(message)        
-          @edit model.id
-          @list.render @template + @list_postfix
+        _tmpl = tmpl_compile(@messages.created)
+        message = _tmpl(model.attributes)
+        app.notifications.notify(message)        
+        @edit model.id
+        @list.render @template_list
              
   #
   # edit a model
@@ -161,7 +173,7 @@ class Controller extends Backbone.Router
   edit: (id) =>
     @modelChanged = false
     model = @list.collection.get(id)
-    @form.render @template + @edit_postfix, {}, model
+    @form.render @template_edit, {}, model
   
   #
   #  get change events from model.set
@@ -169,7 +181,7 @@ class Controller extends Backbone.Router
   #
   changed: (model) =>
     @modelChanged = true
-    @trigger('changed', model)
+    @trigger 'changed', model
   
   #
   #  a model has been "saved" by UI, if anything changed push model to the server
@@ -182,37 +194,47 @@ class Controller extends Backbone.Router
         if retro 
           @form.cancel()
         else
-          tmpl = Handlebars.compile(@messages.saved)
-          message = tmpl(model.attributes)
+          _tmpl = tmpl_compile(@messages.saved)
+          message = _tmpl(model.attributes)
           app.notifications.notify(message) 
           @trigger 'saved', model
   
   #
-  #  deleted, this works by removing from the collection then confirming the delete via notifations 
+  #  deleted, this works by removing from the collection then confirming the delete via notification confirm 
   #
   deleted: (model, collection, options) =>
-     
-    #if one is already teed up just go ahead and destroy
+    
+    #if an item from the list already teed up, just go ahead and destroy
+    #todo: why not queue them ?
     if @to_delete
         @destroy()
     
-    # deleted model looses reference to collection URL, assign it manually
-    Deletable = Backbone.Model.extend({url:@list.collection.url}) 
+    # deleted model looses reference to the collection URL, assign it manually
+    Deletable = Backbone.Model.extend url:@list.collection.url
     @to_delete = new Deletable(model.attributes)
-    tmpl = Handlebars.compile(@messages.delete_warn)
-    message = tmpl(model.attributes)
+  
+    _tmpl = tmpl_compile(@messages.delete_warn)
+    message = _tmpl(model.attributes)
     app.notifications.notify(message, @undo_delete, @destroy)
     @trigger 'deleted', model
-    
+  
+  
   #
-  #  undo delete
+  #  update method is called anytime something major like a save, delete, sort, destroy, undo etc happens.
+  #
+  update: =>
+    @list.render @template_list
+  
+  #
+  #  undo delete, add the model back to the collection
   #
   undo_delete: =>
     @list.collection.add new @list.collection.model(@to_delete.attributes), silent: true
+    @to_delete = null
     @trigger 'delete_undone', @to_delete
   
   #
-  # destroy tell the server it's gone
+  # destroy, tell the server it's gone
   #
   destroy: => 
      @to_delete.destroy success: (data, response) =>
@@ -227,8 +249,11 @@ class Controller extends Backbone.Router
   #  handles errors
   #      
   error: (object, error) ->
+    if console and console.log
+      console.log('Flint: error triggered on controller: ' + error)
     error = error.responseText unless _.isString(error)
-    # check to see if we are getting 401 and bounce back to login.
+    
+    # check to see if we are getting 401 and logout if our permissions have gone bad.
     if error.indexOf('401') > 0
       app.update()
     else
@@ -266,15 +291,16 @@ class Controller extends Backbone.Router
   navigated: =>
     if @modelChanged
       @modelChanged = false  
-      tmpl = Handlebars.compile(@messages.navigate_warn)
-      message = tmpl(@model.attributes)
+      _tmpl = tmpl_compile(@messages.navigate_warn)
+      message = _tmpl(@model.attributes)
       app.notifications.prompt_save message, => 
               @saved(@form.model, true)
     else
       @form.cancel(true)
     
   #
-  #  deletage/undelegate prevents overlap with other view instances that have same classes, .edit, .done etc.
+  #  deletage and undelegate: your best friends in a large scale app. 
+  #  easily switch to another controller without worrying about memory leaks.
   #  
   delegate: =>
     @undelegate()

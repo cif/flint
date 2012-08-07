@@ -110,9 +110,12 @@ fs = require('fs');
         if (plates.engine == 'Handlebars') {
       
           handlebars = require('handlebars');
-          output.push('\n  var template = Handlebars.template, templates = Handlebars.templates = Handlebars.templates || {};\n');
-          output.push('\n  Handlebars.partials = Handlebars;\n')
-          compile_template = handlebars.precompile
+          output.push('\n var template = Handlebars.template, templates = Handlebars.templates = Handlebars.templates || {};');
+          // there is probably a more graceful/efficient way of doing these, but it works a'ight
+          output.push('\n Handlebars.partials = Handlebars.templates;');
+          output.push('\n var tmpl = Handlebars.templates; var tmpl_compile = Handlebars.compile;\n');
+          compile_template = handlebars.precompile;
+        
         } 
         
         /* 
@@ -142,7 +145,11 @@ fs = require('fs');
       
     } catch(e) {
     
-        console.log(color.red + '[plater] warning - deleted or now missing file ' + color.reset + e);
+        //ignore deleted file errors
+      if(e.message.toString().indexOf('no such file') <= 0){
+        console.log(color.red + '[plater] ERROR, template compiler error:' + color.reset);
+        console.log(e.message);
+      }
   
     }
 
@@ -183,7 +190,7 @@ fs = require('fs');
     
     // watch the directory itself for changes
     if(watch)
-      fs.watch(dir, directoryHasChanged)
+      watchers.push( fs.watch(dir, directoryHasChanged) )
     
     //read files in the directory
     readTemplatesDirectory(dir, function(err, files) {

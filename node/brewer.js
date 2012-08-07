@@ -27,7 +27,7 @@ fs = require('fs');
     
   }
   
-  // recursively reads in directory and namespaces template and partial objects  
+  // recursively reads in directory files and namespaces  
   var recurseCoffeeDirectory = function(dir, done) {
     
     // stores results    
@@ -130,14 +130,8 @@ fs = require('fs');
       // compile all the coffee scripts
       out.push('\n');
       
-      // map the tmpl function to the template engine
-      if(coffee.template_engine){
-        out.push('\n');
-        out.push('var tmpl = ' + coffee.template_engine + '.templates;\n');
-        out.push('\n');
-      }
-      
       for(var s = 0; s < coffee.scripts.length; s++){
+          
           data = fs.readFileSync(coffee.scripts[s].file, 'utf8');
           compiled = coffeescript.compile(data, {bare:true})
           
@@ -147,18 +141,25 @@ fs = require('fs');
           // trim so we can rescope objects based on the directory structure
           compiled = compiled.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
           spaced = coffee.scripts[s].namespace.substr(0, coffee.scripts[s].namespace.lastIndexOf('/')).replace(/\//g,'.')
-          
+                    
           // flint gets uppercased because it is special
           if(spaced == '')
             spaced = 'Flint'
-          
-          out.push(spaced + '.' + compiled + '\n')
+            
+          // in case you left a file empty... oops!  
+          // leaving a file empty will also reverse the entire order of recursive compilation ... no bueno.
+          if(compiled != '' && compiled != '\n')
+            out.push(spaced + '.' + compiled + '\n\n')
       
       }
       
     } catch (e) {
-      
-      console.log(color.red + '[brewer] warning, a file was deleted ' + color.reset + e);
+  
+      //ignore deleted file errors
+      if(e.message.toString().indexOf('no such file') <= 0){
+        console.log(color.red + '[brewer] ERROR, coffeescript compile error:' + color.reset);
+        console.log(e.message);
+      }
       
     }
     
@@ -196,6 +197,10 @@ fs = require('fs');
     
     // unwatch all the files
     unwatchAll();
+    
+    // watch the directory itself
+    if(watch)
+      watchers.push( fs.watch(dir, directoryHasChanged) )
     
     //read files in the directory
     recurseCoffeeDirectory(dir, function(err, files) {
@@ -255,7 +260,8 @@ fs = require('fs');
       } catch (e){
         
         console.log(color.red + '[brewer] ERROR! check to be sure your directories exist. ' + color.reset);
-        console.log(e)
+        console.log(e);
+        
         if(coffee.help)
           console.log(coffee.help)
         

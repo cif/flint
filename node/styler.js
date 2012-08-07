@@ -101,7 +101,7 @@ fs = require('fs');
     } catch (e) { 
       
       console.log(color.red + '[styler] Error compiling stylus: ' + color.reset);
-      console.log(e);
+      console.log(e.message);
       
     }
       

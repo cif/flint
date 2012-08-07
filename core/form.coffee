@@ -11,11 +11,12 @@ class Form extends Backbone.View
     'submit form' : 'nosubmit'
     
   initialize: (options) ->
+    # extend additional events from the subclass
     @events = _.extend({}, @_events, @events)
     @init()
     this
   
-  # overriden by superclasses
+  # overriden by superclasses, or not.
   init: =>
       
   render: (@template, @data={}, @model) ->
@@ -25,16 +26,16 @@ class Form extends Backbone.View
       @data.model = @model  
       @data = _.extend({}, @data, @model.attributes)
     
-    @pre_render =>
+    @before =>
       $(@el).html tmpl[@template](@data)
-      @post_render()
+      @after()
     this
   
   # these may get overriden, or not
-  pre_render: (callback) ->
+  before: (callback) ->
     callback()
   
-  post_render: ->
+  after: ->
   
   
   #
@@ -52,15 +53,23 @@ class Form extends Backbone.View
       else
         val = 0
     
-    attribute = input.attr('name')
-    @model.set attribute, val.toString()
-    @trigger 'changed', e, @
+    if val
+      attribute = input.attr('name')
+      @model.set attribute, val.toString(), silent: !@valid_changes
+      @trigger 'changed', e, @
     
   # 
   #  saves a new model
   #
   save: ->
-    @collection.add(@model)
+    # ensure validatation passes before we add to the collection
+    valid = @model.validate(@model.attributes)
+    if !_.isUndefined(valid)
+      app.notifications.error(valid)
+      #@model.trigger 'error', @model, valid  ... bummer this never worked, still not sure why.
+    else
+      @collection.add(@model)
+    
   
   #
   # triggers saved event
