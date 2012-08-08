@@ -1,5 +1,6 @@
 
 // plater pre compiles templates into your templates.js file using your template language of choice.
+
 optimist = require('optimist')
 uglify = require('uglify-js');
 fs = require('fs');
@@ -75,7 +76,7 @@ fs = require('fs');
   //watches a file for changes
   var fileHasChanged = function(event, filename){
       
-      console.log(color.blue + '[plater] change detected to file, recompiling' + color.reset);
+      console.log(color.yellow + '[plater] change detected to file, recompiling' + color.reset);
       compileTemplates();
         
   };
@@ -84,7 +85,7 @@ fs = require('fs');
   // watches a directory for changes  
   var directoryHasChanged = function(event, filename){
      
-      console.log(color.blue + '[plater] new or removed file detected, recompiling' + color.reset);
+      console.log(color.yellow + '[plater] new or removed file detected, recompiling' + color.reset);
       readAndCompile(plates.in, plates.watch);
         
   };

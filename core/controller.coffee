@@ -149,8 +149,8 @@ class Controller extends Backbone.Router
   #
   create: =>
     @form.model = new @list.collection.model({sort_order: @list.collection.length})
-    @unbind()
-    @bind()
+    #@unbind()
+    #@bind()
     @form.render @template_create, {}, @form.model
     @trigger 'create', @
   

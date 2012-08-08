@@ -20,7 +20,7 @@ var color = {
   
 var changed = function(){
 
-  console.log(color.blue + '[dependency] new or renamed file deteted, re-concatenating' + color.reset);
+  console.log(color.yellow + '[dependency] new or renamed file deteted, re-concatenating' + color.reset);
   if(watcher)
     watcher.close();  
   concat(true);

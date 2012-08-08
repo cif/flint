@@ -4,6 +4,7 @@ class Helpers
   constructor: ->
     
     # register class methods with handlebars
+    Handlebars.registerHelper('eq', @eq)
     Handlebars.registerHelper('check_role', @check_role)
           
     Handlebars.registerHelper('link', @link)
@@ -65,6 +66,12 @@ class Helpers
             
   
   # ___________ view helpers registered with handlebars ___________  
+  
+  eq: (value, test, options) ->
+    if value is test
+      return options.fn(this)
+    else
+      return options.inverse(this)
   
   check_role: (user_or_role, required_roles, options) ->
     role = if user_or_role.get then user_or_role.get('role') else user_or_role
@@ -275,6 +282,8 @@ class Helpers
     if !sql
       return false
     sp = sql.split('-')
+    if !sp[1] or !sp[2]
+      return false
     if sp[2].indexOf(' ') >= 0
       sp[2] = sp[2].substr(0, sp[2].indexOf(' '))
     new Date(sp[0], sp[1]-1, sp[2])
@@ -285,6 +294,8 @@ class Helpers
     if sql.indexOf('/') > 0
       return sql  
     js = @sqldate_to_js(sql)
+    if !js
+      return ''
     m = (js.getMonth() + 1)
     d = js.getDate()
     y = js.getFullYear()

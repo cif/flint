@@ -66,7 +66,7 @@ class Form extends Backbone.View
     valid = @model.validate(@model.attributes)
     if !_.isUndefined(valid)
       app.notifications.error(valid)
-      #@model.trigger 'error', @model, valid  ... bummer this never worked, still not sure why.
+      #@model.trigger 'error', @model, valid  -  bummer this never worked out, still not sure why.
     else
       @collection.add(@model)
     

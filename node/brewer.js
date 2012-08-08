@@ -76,7 +76,7 @@ fs = require('fs');
   //watches a file for changes
   var fileHasChanged = function(event, filename){
       
-      console.log(color.blue + '[brewer] change detected to file, recompiling' + color.reset);
+      console.log(color.yellow + '[brewer] change detected to file, recompiling' + color.reset);
       compileTemplates();
   
   };
@@ -85,7 +85,7 @@ fs = require('fs');
   // watches a directory for changes  
   var directoryHasChanged = function(event, filename){
      
-      console.log(color.blue + '[brewer] new or removed file detected, recompiling' + color.reset);
+      console.log(color.yellow + '[brewer] new or removed file detected, recompiling' + color.reset);
       readAndCompile(coffee.in, coffee.watch);
         
   };
@@ -209,7 +209,10 @@ fs = require('fs');
        
        if(err)
          throw new Error('directory does not exists: ' + dir)
-      
+       
+       // sort the files to ensure the order went right, as readdir is async. 
+       files.sort();
+       
        source_dir = coffee.in.toString();
        for(var f = 0; f < files.length; f++){
           

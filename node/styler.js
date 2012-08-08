@@ -23,7 +23,7 @@ fs = require('fs');
   
   var directoryHasChanged = function(event, filename){
     
-    console.log(color.blue + '[styler] new or renamed file deteted, recompiling css' + color.reset);
+    console.log(color.yellow + '[styler] new or renamed file deteted, recompiling css' + color.reset);
     unwatchAll();
     watch(config.in, true);
     
@@ -31,7 +31,7 @@ fs = require('fs');
 
   var fileHasChanged = function(event, filename){
         
-      console.log(color.blue + '[styler] change detected to file, recompiling css' + color.reset);
+      console.log(color.yellow + '[styler] change detected to file, recompiling css' + color.reset);
       unwatchAll();
       watch(config.in, true);
   

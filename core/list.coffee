@@ -24,7 +24,6 @@ class List extends Backbone.View
   
   
   render: (template, data) =>
-    
     @template = template if template
     @data = data if data    
     @before()
@@ -42,7 +41,8 @@ class List extends Backbone.View
         config.handle = @sort_handle
           
       @sortable = $('.sortable').sortable config
-    
+      
+    @trigger 'rendered', @
     @after()
     this  
 
