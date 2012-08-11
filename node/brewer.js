@@ -26,53 +26,7 @@ fs = require('fs');
     minify: false
     
   }
-  
-  // recursively reads in directory files and namespaces  
-  var recurseCoffeeDirectory = function(dir, done) {
     
-    // stores results    
-    var results = []
-    
-    // read the directory    
-    fs.readdir(dir, function(err, list) {
-    
-      if (err) return done(err);
-      var pending = list.length;
-      if (!pending) return done(null, results);
-    
-      // walk it
-      list.forEach( function(file) {
-      
-        file = dir + '/' + file;
-        
-        // determine if file or directory
-        fs.stat(file, function(err, stat) {
-      
-          if (stat && stat.isDirectory()) {
-          
-              // push as directory
-              results.push('directory:' + file);          
-              recurseCoffeeDirectory(file, function(err, res) {
-              results = results.concat(res);
-              if (!--pending) done(null, results);
-          
-            });
-      
-          } else {
-            
-            // push as file
-            results.push('file:' + file);    
-            if (!--pending) done(null, results);
-      
-          }
-      
-        });
-      });
-    });
-      
-  };
-    
-  
   //watches a file for changes
   var fileHasChanged = function(event, filename){
       
@@ -81,6 +35,12 @@ fs = require('fs');
   
   };
   
+  // for when folders (non recusrive mode is being used)
+  var folderHasChanged = function(event, filename){
+      console.log(color.yellow + '[brewer] new or removed file detected, recompiling' + color.reset);
+      readAndCompileFolders()
+  
+  }
   
   // watches a directory for changes  
   var directoryHasChanged = function(event, filename){
@@ -137,11 +97,17 @@ fs = require('fs');
           
           // crop off var Classname; line
           compiled = compiled.substr(compiled.indexOf('\n\n'), compiled.length);
-          
+  
           // trim so we can rescope objects based on the directory structure
           compiled = compiled.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
-          spaced = coffee.scripts[s].namespace.substr(0, coffee.scripts[s].namespace.lastIndexOf('/')).replace(/\//g,'.')
-                    
+          
+          // space depending on folder defined or not
+          if(coffee.scripts[s].namespace.indexOf('/') > 0){    
+            spaced = coffee.scripts[s].namespace.substr(0, coffee.scripts[s].namespace.lastIndexOf('/')).replace(/\//g,'.')
+          } else {
+            spaced = coffee.scripts[s].namespace
+          }     
+             
           // flint gets uppercased because it is special
           if(spaced == '')
             spaced = 'Flint'
@@ -154,7 +120,7 @@ fs = require('fs');
       }
       
     } catch (e) {
-  
+     
       //ignore deleted file errors
       if(e.message.toString().indexOf('no such file') <= 0){
         console.log(color.red + '[brewer] ERROR, coffeescript compile error:' + color.reset);
@@ -178,7 +144,8 @@ fs = require('fs');
     try {
       
       fs.writeFileSync(coffee.out, output, 'utf8');
-      console.log(color.green + '[brewer] compiled ' + coffee.in + ' to ' + coffee.out + color.reset);
+      
+      console.log(color.green + '[brewer] compiled coffeescript sources to ' + coffee.out + color.reset);
       
     } catch(e){
     
@@ -189,6 +156,50 @@ fs = require('fs');
 
  };
 
+  // recursively reads in directory files and namespaces  
+  var recurseCoffeeDirectory = function(dir, done) {
+    
+    // stores results    
+    var results = []
+    
+    // read the directory    
+    fs.readdir(dir, function(err, list) {
+    
+      if (err) return done(err);
+      var pending = list.length;
+      if (!pending) return done(null, results);
+    
+      // walk it
+      list.forEach( function(file) {
+      
+        file = dir + '/' + file;
+        
+        // determine if file or directory
+        fs.stat(file, function(err, stat) {
+      
+          if (stat && stat.isDirectory()) {
+          
+              // push as directory
+              results.push('directory:' + file);          
+              recurseCoffeeDirectory(file, function(err, res) {
+              results = results.concat(res);
+              if (!--pending) done(null, results);
+          
+            });
+      
+          } else {
+            
+            // push as file
+            results.push('file:' + file);    
+            if (!--pending) done(null, results);
+      
+          }
+      
+        });
+      });
+    });
+      
+  };
   
  var readAndCompile = function(dir, watch){
    
@@ -273,13 +284,66 @@ fs = require('fs');
     });
    
   }  
+  
+  var readAndCompileFolders = function(folders, watch) { 
+      
+      
+    coffee.scripts = []
+    coffee.directories = []
+    
+    // unwatch all the files
+    unwatchAll();
+      
+    for(var f = 0; f < folders.length; f++){
+        
+        folder = folders[f];
+        
+        Object.keys(folder).forEach(function(namespace) {
+          var dir = coffee.base + folder[namespace]
+          
+          // create directory namespaced
+          coffee.directories.push({
+            namespace: namespace,
+            directory: dir
+          })
+          
+           // watch the directory
+           if(watch)
+              watchers.push( fs.watch(dir, folderHasChanged) )
+          
+          var files = fs.readdirSync(dir)
+          for(var i = 0; i < files.length; i++){
+            
+            if( files[i].indexOf('.coffee') > 0){
+               
+               if(watch)
+                  watchers.push( fs.watch(files[i], fileHasChanged) );
+               
+               coffee.scripts.push({
+                namespace: namespace,
+                file: dir + '/' + files[i]
+              });
+              
+            }
+            
+          }
+          
+        })
+        
+    }
+    
+    console.log(coffee.scripts)
+      
+    compileTemplates();
+      
+  }
 
 
 // export functions for module use
 exports.configure = function(config){ coffee = config; }
 exports.watch = function(){
   
-  console.log(color.yellow + '[brewer] watching template directory ' + coffee.in  + color.reset);
+  console.log(color.yellow + '[brewer] watching template directory ' + coffee.base + coffee.in  + color.reset);
   coffee.watch = true;
   readAndCompile(coffee.in, true);
   
@@ -287,8 +351,10 @@ exports.watch = function(){
 
 exports.compile = function(){
   coffee.watch = false;
-  readAndCompile(coffee.in, false);
-  
+  if(typeof coffee.in == 'string')
+    readAndCompile(coffee.base + coffee.in, false);
+  else
+    readAndCompileFolders(coffee.in, false);
 }
 
  

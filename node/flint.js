@@ -41,10 +41,11 @@ try {
     depend.on(depencency)
 
    // coffee destinations and template engine
-    coffee_maker = {}
-    coffee_maker.in =  base + flint.config.coffeescript
-    coffee_maker.out = base + flint.config.compile_coffee_to
-    brewer.configure(coffee_maker)
+    maker = {}
+    maker.in = flint.config.coffeescript
+    maker.out = base + flint.config.compile_coffee_to
+    maker.base = base
+    brewer.configure(maker)
 
    // stylus
     artist = {}
