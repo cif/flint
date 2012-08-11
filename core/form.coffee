@@ -53,7 +53,7 @@ class Form extends Backbone.View
       else
         val = 0
     
-    if val
+    if !_.isUndefined val
       attribute = input.attr('name')
       @model.set attribute, val.toString(), silent: !@valid_changes
       @trigger 'changed', e, @

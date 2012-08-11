@@ -47,23 +47,7 @@ class Helpers
     $(selector).html('<p class="loader"><em class="one">&nbsp;</em><em class="two">&nbsp;</em><em class="three">&nbsp;</em><em class="four">&nbsp;</em></p>')
     $('.loader').css({opacity:1})
     $(selector)
-  
-  #
-  #  simple modal window content, we called it a "popper" 
-  #
-  popper: (content, width=450, height=300, top=150, left='center', allow_close=true) ->
-    winwidth = $(window).width()
-    html = '<div class="modal-window"><div class="pad">' + content + '</div></div><div class="modal-screen"></div>'
-    $('body').append(html)
-    left = if left is 'center' then (winwidth-width) / 2 else left
-    $('.modal-window').css({ opacity:1, width:width+'px', height:height+'px', top:top+'px', left:left+'px' })
-    $('.modal-window div.pad').css({ width:(width-20)+'px', height:(height-20)+'px' })
-    if allow_close 
-      $('.modal-screen,.modal-window .close').bind 'click', @close_popper
-    
-  close_popper: =>
-    $('.modal-screen,.modal-window').remove()  
-            
+              
   
   # ___________ view helpers registered with handlebars ___________  
   
@@ -185,9 +169,8 @@ class Helpers
       optstr += 'value="'+value+'">' + value + '</option>'  
       opts.push(optstr)  
     new Handlebars.SafeString('<select name="'+field+'" ' + attrs.join(' ') + '>' + opts.join('') + '</select>')
-    
-      
-  radio: (model, field, options) ->  
+          
+  radio_group: (model, field, options) ->  
     selected = model.get(field)
     opts = []
     _.each(options, (option) -> 
@@ -217,7 +200,14 @@ class Helpers
     value = if model and model.get then model.get(field) else ''
     new Handlebars.SafeString('<textarea name="'+field+'" ' + attrs.join(' ') + '>'+value+'</textarea>')
   
-     
+  
+  # ___________ cookie function ___________
+  
+ 
+	  
+
+    
+    
   # ___________ date helpers ___________
   month_grid: (month, year) ->
         

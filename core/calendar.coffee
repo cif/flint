@@ -72,8 +72,10 @@ class Calendar extends Backbone.View
   #  set the focus date
   #
   set_focus_date: (@focus_date, date) =>    
-    @month = date.getMonth()
-    @year = date.getFullYear()
+    if date
+      @date = date
+    @month = @date.getMonth()
+    @year = @date.getFullYear()
     @render()
     @set_focus_and_highlight()
   

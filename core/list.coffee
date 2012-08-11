@@ -23,15 +23,15 @@ class List extends Backbone.View
     this
   
   
-  render: (template, data) =>
+  render: (template, data) ->
     @template = template if template
     @data = data if data    
     @before()
     
-    if @template
+    if @template and @data
       $(@el).html tmpl[@template](@data)
-    else
-      console.log('WARNING Flint.List: @template is undefined.')
+    else if console and console.log
+      console.log('WARNING Flint.List: @template or @data is undefined.')
     
     # make sortable
     if @sortable
@@ -123,5 +123,5 @@ class List extends Backbone.View
       $(@el).html tmpl[@template_help]({help:help}) 
   
   close_help: =>
-    @render(false)
+    @render()
     

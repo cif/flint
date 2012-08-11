@@ -1,0 +1,118 @@
+<!DOCTYPE html>  <html> <head>   <title>calendar.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="calendar.html">                 calendar.coffee               </a>                                           <a class="source" href="controller.html">                 controller.coffee               </a>                                           <a class="source" href="form.html">                 form.coffee               </a>                                           <a class="source" href="helpers.html">                 helpers.coffee               </a>                                           <a class="source" href="list.html">                 list.coffee               </a>                                           <a class="source" href="model.html">                 model.coffee               </a>                                           <a class="source" href="notifications.html">                 notifications.coffee               </a>                                           <a class="source" href="sync.html">                 sync.coffee               </a>                                           <a class="source" href="view.html">                 view.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               calendar.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">Calendar</span> <span class="k">extends</span> <span class="nx">Backbone</span><span class="p">.</span><span class="nx">View</span>
+  
+  <span class="nv">_events:</span>
+    <span class="s">&#39;click button.next&#39;</span> <span class="o">:</span> <span class="s">&#39;next_month&#39;</span>
+    <span class="s">&#39;click button.previous&#39;</span> <span class="o">:</span> <span class="s">&#39;previous_month&#39;</span>
+    <span class="s">&#39;click td.day&#39;</span> <span class="o">:</span> <span class="s">&#39;date_clicked&#39;</span>
+  
+  <span class="nx">selected_dates</span><span class="o">:</span><span class="p">[]</span>
+  <span class="nv">focus_date: </span><span class="kc">false</span>
+  <span class="nv">higlight: </span><span class="s">&#39;day&#39;</span>
+  
+  <span class="nx">day_labels</span><span class="o">:</span><span class="p">[</span>
+    <span class="p">{</span><span class="nx">day</span><span class="o">:</span><span class="s">&#39;S&#39;</span><span class="p">},</span> 
+    <span class="p">{</span><span class="nx">day</span><span class="o">:</span><span class="s">&#39;M&#39;</span><span class="p">},</span> 
+    <span class="p">{</span><span class="nx">day</span><span class="o">:</span><span class="s">&#39;T&#39;</span><span class="p">},</span> 
+    <span class="p">{</span><span class="nx">day</span><span class="o">:</span><span class="s">&#39;W&#39;</span><span class="p">},</span> 
+    <span class="p">{</span><span class="nx">day</span><span class="o">:</span><span class="s">&#39;T&#39;</span><span class="p">},</span> 
+    <span class="p">{</span><span class="nx">day</span><span class="o">:</span><span class="s">&#39;F&#39;</span><span class="p">},</span> 
+    <span class="p">{</span><span class="nx">day</span><span class="o">:</span><span class="s">&#39;S&#39;</span><span class="p">}</span>
+  <span class="p">]</span>
+  
+  <span class="nx">month_labels</span><span class="o">:</span><span class="p">[</span>
+    <span class="s">&#39;January&#39;</span><span class="p">,</span>
+    <span class="s">&#39;February&#39;</span><span class="p">,</span>
+    <span class="s">&#39;March&#39;</span><span class="p">,</span>
+    <span class="s">&#39;April&#39;</span><span class="p">,</span>
+    <span class="s">&#39;May&#39;</span><span class="p">,</span>
+    <span class="s">&#39;June&#39;</span><span class="p">,</span>
+    <span class="s">&#39;July&#39;</span><span class="p">,</span>
+    <span class="s">&#39;August&#39;</span><span class="p">,</span>
+    <span class="s">&#39;September&#39;</span><span class="p">,</span>
+    <span class="s">&#39;October&#39;</span><span class="p">,</span>
+    <span class="s">&#39;November&#39;</span><span class="p">,</span>
+    <span class="s">&#39;December&#39;</span>
+  <span class="p">]</span>
+  
+  <span class="nv">constructor: </span><span class="nf">(@el=&#39;#calendar&#39;, @year, @month) -&gt;</span>
+    <span class="vi">@events = </span><span class="nx">_</span><span class="p">.</span><span class="nx">extend</span><span class="p">({},</span> <span class="nx">@_events</span><span class="p">,</span> <span class="nx">@events</span><span class="p">)</span>
+    <span class="vi">@$el = </span><span class="nx">$</span><span class="p">(</span><span class="nx">@el</span><span class="p">)</span>
+    <span class="nx">@initialize</span><span class="p">(</span><span class="nx">@year</span><span class="p">,</span> <span class="nx">@month</span><span class="p">)</span>
+    <span class="nx">@delegateEvents</span><span class="p">()</span>
+    <span class="k">this</span>
+  
+  <span class="nv">initialize: </span><span class="nf">(@year, @month) -&gt;</span>      
+    <span class="vi">@date = </span><span class="k">new</span> <span class="nb">Date</span>
+    <span class="vi">@month = </span><span class="nx">@date</span><span class="p">.</span><span class="nx">getMonth</span><span class="p">()</span> <span class="nx">unless</span> <span class="nx">@month</span>
+    <span class="vi">@year = </span><span class="nx">@date</span><span class="p">.</span><span class="nx">getFullYear</span><span class="p">()</span> <span class="nx">unless</span> <span class="nx">@year</span>
+    <span class="vi">@date = </span><span class="nx">@date</span><span class="p">.</span><span class="nx">getDate</span><span class="p">()</span>
+    </pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>set focus date to today</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">fm = </span><span class="k">if</span> <span class="p">(</span><span class="nx">@month</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="k">then</span> <span class="s">&#39;0&#39;</span> <span class="o">+</span> <span class="p">(</span><span class="nx">@month</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="nx">@month</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nv">fd = </span><span class="k">if</span> <span class="nx">@date</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="k">then</span> <span class="s">&#39;0&#39;</span> <span class="o">+</span> <span class="nx">@date</span> <span class="k">else</span> <span class="nx">@date</span>
+    <span class="vi">@focus_date = </span><span class="nx">@year</span> <span class="o">+</span> <span class="s">&#39;-&#39;</span> <span class="o">+</span> <span class="nx">fm</span> <span class="o">+</span> <span class="s">&#39;-&#39;</span> <span class="o">+</span> <span class="nx">fd</span>
+    
+    <span class="nx">@render</span><span class="p">()</span>
+    </pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>add  class to today</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">$</span><span class="p">(</span><span class="s">&#39;#&#39;</span> <span class="o">+</span> <span class="nx">@focus_date</span><span class="p">).</span><span class="nx">addClass</span><span class="p">(</span><span class="s">&#39;fb-today&#39;</span><span class="p">)</span>
+  </pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>renders using the month() template</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">render: </span> <span class="o">-&gt;</span>      
+    <span class="nv">data =</span>
+      <span class="nv">month_name: </span><span class="nx">@month_labels</span><span class="p">[</span><span class="nx">@month</span><span class="p">]</span>
+      <span class="nv">day_labels: </span><span class="nx">@day_labels</span>  
+      <span class="nv">month: </span><span class="nx">@month</span>
+      <span class="nv">year: </span><span class="nx">@year</span> 
+    <span class="nx">$</span><span class="p">(</span><span class="nx">@el</span><span class="p">).</span><span class="nx">html</span> <span class="nx">Handlebars</span><span class="p">.</span><span class="nx">templates</span><span class="p">.</span><span class="nx">month</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span>
+  </pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>set the focus date</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">set_focus_date: </span><span class="p">(</span><span class="nx">@focus_date</span><span class="p">,</span> <span class="nx">date</span><span class="p">)</span> <span class="o">=&gt;</span>    
+    <span class="k">if</span> <span class="nx">date</span>
+      <span class="vi">@date = </span><span class="nx">date</span>
+    <span class="vi">@month = </span><span class="nx">@date</span><span class="p">.</span><span class="nx">getMonth</span><span class="p">()</span>
+    <span class="vi">@year = </span><span class="nx">@date</span><span class="p">.</span><span class="nx">getFullYear</span><span class="p">()</span>
+    <span class="nx">@render</span><span class="p">()</span>
+    <span class="nx">@set_focus_and_highlight</span><span class="p">()</span>
+  </pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>sets a focus class for month, week and day views.  </p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">set_focus_and_highlight: </span><span class="p">(</span><span class="nv">which = </span><span class="kc">false</span><span class="p">)</span> <span class="o">=&gt;</span>
+    <span class="nv">id = </span><span class="nx">$</span><span class="p">(</span><span class="nx">@el</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s">&#39;id&#39;</span><span class="p">)</span>
+    <span class="nx">$</span><span class="p">(</span><span class="s">&#39;#&#39;</span><span class="o">+</span> <span class="nx">id</span> <span class="o">+</span> <span class="s">&#39; td&#39;</span><span class="p">).</span><span class="nx">removeClass</span><span class="p">(</span><span class="s">&#39;fb-highlight&#39;</span><span class="p">)</span>
+                          <span class="p">.</span><span class="nx">removeClass</span><span class="p">(</span><span class="s">&#39;fb-focus&#39;</span><span class="p">)</span>
+    <span class="nv">td_focused = </span><span class="nx">$</span><span class="p">(</span><span class="s">&#39;#&#39;</span> <span class="o">+</span> <span class="nx">id</span> <span class="o">+</span> <span class="s">&#39; td[data-sql=&#39;</span> <span class="o">+</span> <span class="nx">@focus_date</span> <span class="o">+</span> <span class="s">&#39;]&#39;</span><span class="p">)</span>
+    <span class="nv">focus_parts = </span><span class="nx">@focus_date</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s">&#39;-&#39;</span><span class="p">)</span>
+    <span class="nv">focus_month = </span><span class="nx">focus_parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="vi">@highlight = </span><span class="nx">which</span> <span class="k">if</span> <span class="nx">which</span> 
+    <span class="k">switch</span> <span class="nx">@highlight</span>
+      <span class="k">when</span> <span class="s">&#39;week&#39;</span> <span class="k">then</span> <span class="nx">td_focused</span><span class="p">.</span><span class="nx">parent</span><span class="p">().</span><span class="nx">children</span><span class="p">(</span><span class="s">&#39;td&#39;</span><span class="p">).</span><span class="nx">addClass</span><span class="p">(</span><span class="s">&#39;fb-highlight&#39;</span><span class="p">)</span>
+      <span class="k">when</span> <span class="s">&#39;month&#39;</span> <span class="k">then</span> <span class="nx">$</span><span class="p">(</span><span class="s">&#39;#&#39;</span><span class="o">+</span><span class="nx">id</span><span class="o">+</span><span class="s">&#39; td&#39;</span><span class="p">).</span><span class="nx">addClass</span><span class="p">(</span><span class="s">&#39;fb-highlight&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="nx">focus_month</span><span class="o">-</span><span class="mi">1</span> <span class="o">is</span> <span class="nx">@month</span>
+    
+    <span class="nx">td_focused</span><span class="p">.</span><span class="nx">removeClass</span><span class="p">(</span><span class="s">&#39;fb-highlight&#39;</span><span class="p">)</span>
+              <span class="p">.</span><span class="nx">addClass</span><span class="p">(</span><span class="s">&#39;fb-focus&#39;</span><span class="p">)</span>
+  </pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>renders the next month</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">next_month: </span><span class="o">-&gt;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">@month</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">is</span> <span class="mi">12</span>
+      <span class="nx">@year</span><span class="o">++</span>
+      <span class="vi">@month = </span><span class="mi">0</span>
+    <span class="k">else</span>
+      <span class="nx">@month</span><span class="o">++</span> 
+    <span class="nx">@render</span><span class="p">(</span><span class="nx">@month</span><span class="p">,</span> <span class="nx">@year</span><span class="p">)</span>
+    <span class="nx">@set_focus_and_highlight</span><span class="p">()</span>
+    <span class="nx">@trigger</span><span class="p">(</span><span class="s">&#39;next&#39;</span><span class="p">,</span> <span class="nx">@</span><span class="p">)</span>
+  </pre></div>             </td>           </tr>                               <tr id="section-8">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-8">&#182;</a>               </div>               <p>renders the previous month</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">previous_month: </span><span class="o">-&gt;</span>
+    <span class="k">if</span> <span class="nx">@month</span> <span class="o">is</span> <span class="mi">0</span>
+      <span class="nx">@year</span><span class="o">--</span>
+      <span class="vi">@month = </span><span class="mi">11</span>
+    <span class="k">else</span>
+      <span class="nx">@month</span><span class="o">--</span>
+    <span class="nx">@render</span><span class="p">(</span><span class="nx">@month</span><span class="p">,</span> <span class="nx">@year</span><span class="p">)</span>
+    <span class="nx">@set_focus_and_highlight</span><span class="p">()</span>
+    <span class="nx">@trigger</span><span class="p">(</span><span class="s">&#39;prev&#39;</span><span class="p">,</span> <span class="nx">@</span><span class="p">)</span>
+  </pre></div>             </td>           </tr>                               <tr id="section-9">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-9">&#182;</a>               </div>               <p>handles date click. adds date to selection and triggers select/deslect events</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">date_clicked: </span><span class="nf">(e) -&gt;</span>
+    <span class="nv">td = </span><span class="nx">$</span> <span class="nx">e</span><span class="p">.</span><span class="nx">target</span>
+    <span class="nv">sql_date = </span><span class="nx">td</span><span class="p">.</span><span class="nx">attr</span> <span class="s">&#39;data-sql&#39;</span>
+    <span class="nv">split = </span><span class="nx">sql_date</span><span class="p">.</span><span class="nx">split</span> <span class="s">&#39;-&#39;</span>
+    <span class="nv">date = </span><span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="nx">split</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nx">split</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="nx">split</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="nx">@trigger</span> <span class="s">&#39;clicked&#39;</span><span class="p">,</span> <span class="nx">sql_date</span><span class="p">,</span> <span class="nx">date</span><span class="p">,</span> <span class="nx">@selected_dates</span><span class="p">,</span> <span class="nx">e</span>
+    <span class="k">if</span> <span class="nx">_</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="nx">@selected_dates</span><span class="p">,</span> <span class="nx">date</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+      <span class="vi">@selected_dates = </span><span class="nx">_</span><span class="p">.</span><span class="nx">without</span><span class="p">(</span><span class="nx">@selected_dates</span><span class="p">,</span> <span class="nx">date</span><span class="p">)</span>
+      <span class="nx">@trigger</span> <span class="s">&#39;deselect&#39;</span><span class="p">,</span> <span class="nx">sql_date</span><span class="p">,</span> <span class="nx">date</span><span class="p">,</span> <span class="nx">@selected_dates</span><span class="p">,</span> <span class="nx">e</span>
+    <span class="k">else</span>
+      <span class="nx">@selected_dates</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">date</span><span class="p">)</span>
+      <span class="nx">@trigger</span> <span class="s">&#39;select&#39;</span><span class="p">,</span> <span class="nx">sql_date</span><span class="p">,</span> <span class="nx">date</span><span class="p">,</span> <span class="nx">@selected_dates</span><span class="p">,</span> <span class="nx">e</span>
+    
+    <span class="vi">@focus_date = </span><span class="nx">sql_date</span>
+    <span class="nx">@set_focus_and_highlight</span><span class="p">()</span>
+  
+
+</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 

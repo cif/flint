@@ -11,7 +11,7 @@ exports.config = {
   // coffeescript
   coffeescript: 'app/coffee',
   compile_coffee_to: 'public/javascript/application.js',
-  compile_resources_to : 'app/server/resources.js'
+  compile_resources_to : 'app/server/resources.js',
   
   // stylus
   stylus: 'app/stylus',

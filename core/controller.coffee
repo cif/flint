@@ -1,82 +1,115 @@
 
+# Flint.Controller - extends Backbone.Router
+#
+#   * Binds / unbinds common events
+#
+#   * Pushes changes to Flint.Sync / Backbone.Models
+#
+#   * Calls @app.notifications methods with templated messages
+
 class Controller extends Backbone.Router
   
-  # configuration  
+  # Specify a template path for each CRUD action. 
+  # There is also an optional help_template property
   template_create : 'forms/create'
   template_edit   : 'forms/edit'
-  template_list   : 'forms/list'
+  template_view   : 'forms/view'
+  template_list   : 'forms/list'  
   template_help   : false
-      
+  
+  # Specify the collection and model classes if the exist.
+  # Note that these are strings and not references to the classes themselves.    
   collection      : false
   model           : false  
   
+  # Specify the list class and list element, by default Flint.List will be sued.
   list            : 'List'
   list_el         : '#app'
+  
+  # If the list is sortable, a simple boolean flag and sorted_url attribute will take care of everything for you
   sortable        : false  
   sorted_url      : false
   sort_handle     : false
   
+  # Speficy the form class and element, by default Flint.Form will be used
   form            : 'Form'
   form_el         : '#app'
+  
+  # Determines whether or not validation will be called as the model is changed by the UI.
+  # This uses silent: true when setting changed attributes on the model. See Flint.Form docs for more.
   valid_changes   : true
   
+  # Default messages. If you want to display more verbose messages you can override these.  
+  # Note that handlebars syntax is used by default.
   _messages:
     created        : '{{name}} has been created.'
     saved          : 'Changes to {{name}} have been saved.' 
     delete_warn    : 'You are about to delete {{name}}, proceed?'
     navigate_warn  : 'Did you want to save the changes you just made?'
     sorted         : 'You have changed the sort order.'
-        
-  #
-  # creates instances of the list, form, collection, and model and binds events.
-  #  
+  
+  # Backbone calls this method, sort of a psudo constructor if you will.      
   initialize: (app) ->
     
-    #extend any messages that were overriden
+    # Extend any messages that were overriden by the subclass
     @messages = {} unless @messages
     _.map @_messages, (val, key) =>
       if _.isUndefined(@messages[key])
         @messages[key] = val
-         
+    
+    # Instantiate @list as the specified class or Flint.List      
     list = if views[@list] then views[@list] else Flint[@list]
     if !list
-      throw new Error('List class "'+@list+'" does not exists')
+      throw new Error('List class "'+@list+'" does not exists') 
     
-    form = if views[@form] then views[@form] else Flint[@form]
-    if !form
-      throw new Error('Form class "'+@form+'" does not exists')
-                  
+    # Configure @list              
     @list = new list { el: @list_el }, @sortable
     @list.sort_handle = @sort_handle
     @list.template = @template_list    
     @list.template_help = @template_help if @template_help
+    
+    # Assign a collection to the list. In Flint, @list works with the collection, not so much the controller
     @list.collection = if @collection then new collections[@collection] else new Backbone.Collection
     @list.collection.model = if @model then models[@model] else Backbone.Model    
-      
+       
+    # Instantiate @form as the specified class or Flint.Form
+    form = if views[@form] then views[@form] else Flint[@form]
+    if !form
+      throw new Error('Form class "'+@form+'" does not exists')
+    
+    # Configure @form
     @form = new form { el: @form_el } 
     @form.model = new @list.collection.model
     @form.collection = @list.collection
     @form.valid_changes = @valid_changes
     
-    # register this with the application so unbinding is called appropriately
+    # Undelegate backbone events since they get delegated automatically, in our case we do not want this.
+    @list.undelegateEvents()
+    @form.undelegateEvents()
+    
+    # Register this instance with the application so that binding and unbinding is called automatically
     app.register(@) 
-    @init(app)    
+    
+    # Keep an internal reference to the app in case you want to intantiate it as something other than var app
+    @app = app
+    
+    # Call @init
+    @init(app)  
+    
+    # Return the instance  
     this
   
-  #
-  # init is generally overriden by the superclass, good for setting up events that should only be put in place ahem... once
-  #
+  
+  # This is a method that is called after initialize, in case you need it.
   init: =>
     
   
-  #
-  #  binds the application components to common events
-  #
+  #  Binds the application components to common events which include:
+  #   creation, editing, sorting, saving, deleting, leaving the view (cancled)
   bind: =>
     @list.on 'create', @create
     @list.on 'edit', @edit
-    @list.on 'sort', @sorted
-    
+    @list.on 'sort', @sorted    
     @list.collection.on 'add', @added
     @list.collection.on 'remove', @deleted 
     @list.collection.on 'change', @changed   
@@ -87,31 +120,25 @@ class Controller extends Backbone.Router
     @form.on 'canceled', => @modelChanged = false
     @form.model.on 'error', @error
     
-    @.on 'saved deleted destroyed delete_undone sort_undone destroy_error', @update
+    #  Note that all the default events will call @update. 
+    #  Overriding @update is the easiest way to subscribe to all these events 
+    #  at once without having to worry about cleanup.
+    @.on 'saved deleted sorted destroyed delete_undone sort_undone destroy_error', @update
     
-    #  bind to the app navigation/history listener
-    app.on 'navigate', @navigated 
   
-  
-  #
-  #  unbind frees up memory consumed by constantly listening for this many events. this is a MUST in a big applications
-  #
-  
+  #  Unbind frees up the memory consumed by listening for many events. 
   unbind: =>
     @list.off 'create edit sort'
     @list.collection.off 'add remove change error'
     @form.off 'delete saved canceled'
     @form.model.off 'error'
-    @.off 'saved deleted destroyed delete_undone sort_undone destroy_error'
+    @.off 'saved deleted sorted destroyed delete_undone sort_undone destroy_error'
     
-    # backwards unbinding to application
-    app.off 'navigate'
-  
-  #
-  #  fetch - fetches a collection if fetched previously or the server if not, or force:true is specified in options 
-  #
-  fetch: (callback, options={}) =>
-    if @list.collection.length > 0 and not options.force
+  # fetch()
+  # is a helper method that will fetch the list from the server 
+  # without having to rewrite this routine each time you want to make sure the collection is there
+  fetch: (callback) =>
+    if @list.collection.length > 0
       return callback @list.collection
     else
       @list.collection.fetch
@@ -121,10 +148,9 @@ class Controller extends Backbone.Router
              return callback false
           callback @list.collection
   
-  #
-  #  get - force fetches a model by id from the server. useful if not all data is provided to @list.collection to render the list.
-  #  todo, create test option to get from cache instead.
-  #
+  #  get(id)
+  #  is a helper method that returns a specific model from the collection by id. 
+  #  it will call fetch if the collection is not populated.
   get: (id, callback, options={}) =>
     if @list.collection.length is 0
       @fetch =>
@@ -136,182 +162,147 @@ class Controller extends Backbone.Router
     model = @list.collection.get(id)
     if !model
       callback false
-    else if options.cached
-      callback model
     else
       model.fetch
         silent: true
         success: => 
           callback model
             
-  #
-  #  begins the creation of a new model by rending form/create.hb
-  #
+  # create() is the c in your crud. it will render a new model instance into your form 
+  # using defaults to populate any values specified.
   create: =>
-    @form.model = new @list.collection.model({sort_order: @list.collection.length})
-    #@unbind()
-    #@bind()
+    @form.model = new @list.collection.model sort_order: @list.collection.length
     @form.render @template_create, {}, @form.model
     @trigger 'create', @
   
-  #
-  #  saves a new record on the server and notifies
-  #
+  # added will get fired when @form save() pushes the model into the collection
+  # the default Backbone.Model.Save() method pushes the model to the @app.sync for processing. 
   added: (model) =>
     @trigger 'added', model
-    app.notifications.notify('Saving...')
+    @app.notifications.notify('Saving...') unless not @app.notifications
     model.save model, success: =>
         _tmpl = tmpl_compile(@messages.created)
         message = _tmpl(model.attributes)
-        app.notifications.notify(message)        
+        @app.notifications.notify(message) unless not @app.notifications       
         @edit model.id
         @list.render @template_list
              
-  #
-  # edit a model
-  #
+  # edit() renders an existing model into @form
   edit: (id) =>
-    @modelChanged = false
     model = @list.collection.get(id)
     @form.render @template_edit, {}, model
   
-  #
-  #  get change events from model.set
-  #  super class should listen to implement updates to list, realtime socket.io push etc. 
-  #
+  # changed() is received from @form.chanaged method and then broadcast to listeners 
+  # it is first pushed directly to @app.sync (Flint.Sync) for processing
   changed: (model) =>
-    @modelChanged = true
+    @app.sync.changed(model) unless not @app.sync
     @trigger 'changed', model
   
-  #
-  #  a model has been "saved" by UI, if anything changed push model to the server
-  #
-  saved: (model, retro=false) =>
-    if @modelChanged or retro
-      @modelChanged = false
-      model.save null, success: =>
-        # if the save has been fired because the user navigated away just close up shop
-        if retro 
-          @form.cancel()
-        else
-          _tmpl = tmpl_compile(@messages.saved)
-          message = _tmpl(model.attributes)
-          app.notifications.notify(message) 
-          @trigger 'saved', model
+  #  saved() is called from @form.save's event broadcast and pushes the entire model to the server
+  #  as a result Flint.Sync becomes aware of this change. 
+  saved: (model) =>
+    @trigger 'saved', model
+    model.save null, success: =>
+      _tmpl = tmpl_compile(@messages.saved)
+      message = _tmpl(model.attributes)
+      @app.notifications.notify(message) unless not @app.notifications      
   
-  #
-  #  deleted, this works by removing from the collection then confirming the delete via notification confirm 
-  #
+  # deleted() is recieved from @list or @form and behaves differently than you might expect. 
+  # Instead of blowing the model away, it retains a copy and will prompt undo
   deleted: (model, collection, options) =>
     
-    #if an item from the list already teed up, just go ahead and destroy
-    #todo: why not queue them ?
+    @trigger 'deleted', model
+    
+    # if an item from the list already teed up, just go ahead and destroy it
     if @to_delete
         @destroy()
     
-    # deleted model looses reference to the collection URL, assign it manually
-    Deletable = Backbone.Model.extend url:@list.collection.url
-    @to_delete = new Deletable(model.attributes)
+    # we lost reference to the collection as it was removed by @list or @from so the url needs to be re-assigne
+    Deletable = Backbone.Model.extend url: @list.collection.url
+    @to_delete = new Deletable model.attributes
+    
+    # if notifications are present, we know the undo action will recive the confirmation and @destroy as callback.
+    if @app.notifications 
+      _tmpl = tmpl_compile(@messages.delete_warn)
+      message = _tmpl(model.attributes)
+      @app.notifications.notify(message, @undo_delete, @destroy)
+    else
+      @destroy()
+    
   
-    _tmpl = tmpl_compile(@messages.delete_warn)
-    message = _tmpl(model.attributes)
-    app.notifications.notify(message, @undo_delete, @destroy)
-    @trigger 'deleted', model
-  
-  
-  #
-  #  update method is called anytime something major like a save, delete, sort, destroy, undo etc happens.
-  #
-  update: =>
-    @list.render @template_list
-  
-  #
-  #  undo delete, add the model back to the collection
-  #
+  # If a user elects to take the notification's undo action callback 
+  # then the model is added back to the collection quietly
   undo_delete: =>
     @list.collection.add new @list.collection.model(@to_delete.attributes), silent: true
     @to_delete = null
     @trigger 'delete_undone', @to_delete
   
-  #
-  # destroy, tell the server it's gone
-  #
+  # destroy() tells the server to kill the model. 
   destroy: => 
      @to_delete.destroy success: (data, response) =>
+      # in the event we get an error from destruction attempt (not authorzied etc.) 
+      # let the user know and quietly put it back.
       if response and response.error
-        app.notifications.error(response.error)
-        @list.collection.add(@to_delete, {silent: true})
+        @app.notifications.error(response.error) unless not @app.notifications
+        @list.collection.add @to_delete, silent: true
         @trigger 'destroyed', @to_delete
+        @update()
       else
         @trigger 'destroy_error', @to_delete
   
-  #
-  #  handles errors
-  #      
+  # Update is a handy method to overide which gets all the events broadcast by this class that 
+  # by default, it will simply re-render the list view
+  update: =>
+    @list.render @template_list
+    
+  # Handle any errors recived from validation or other     
   error: (object, error) ->
+    
     if console and console.log
-      console.log('Flint: error triggered on controller: ' + error)
+      console.log('NOTICE: error triggered on controller: ' + error)
     error = error.responseText unless _.isString(error)
     
-    # check to see if we are getting 401 and logout if our permissions have gone bad.
+    # check to see if we are getting 401 and force the app to do an update call
     if error.indexOf('401') > 0
-      app.update()
+      @app.update() unless not @app.update
     else
-      app.notifications.error(error)
+      @app.notifications.error(error) unless not @app.notifications
       
 
-  #
-  #  handles sorting events if the list has been made sortable
-  #
+  # sorted() handles sorting from @list. if the user confirms instead of undoing their action 
+  # serialize the data and send to @app.sync
   sorted: (serialized) =>  
-    app.notifications.notify(
+    @trigger 'sorted'
+    @app.notifications.notify
       @messages.sorted, 
       @undo_sort_order, 
       =>
         # send request if confirmed
-        app.sync.ajax @sorted_url,
+        @app.sync.ajax @sorted_url,
             type:'POST'
-            data:{json:JSON.stringify(serialized)}
+            data: 
+              json:JSON.stringify(serialized)
       
-    )
-  
-  #
-  #  undo default sort order
-  #
-  undo_sort_order: =>
-    _.each(@list.collection.models, (model) ->
-      model.set('sort_order', model.get('order_before_sort'), {silent:true})
-    )
-    @list.collection.sort()
-    @list.render()  
-  
-  #
-  #  handles navigation events from controllers allowing a prompt for save if necessary
-  #
-  navigated: =>
-    if @modelChanged
-      @modelChanged = false  
-      _tmpl = tmpl_compile(@messages.navigate_warn)
-      message = _tmpl(@model.attributes)
-      app.notifications.prompt_save message, => 
-              @saved(@form.model, true)
-    else
-      @form.cancel(true)
     
-  #
-  #  deletage and undelegate: your best friends in a large scale app. 
-  #  easily switch to another controller without worrying about memory leaks.
-  #  
+  
+  # Revert all the sort order attributes to their orignal state and broadcasts the event
+  undo_sort_order: =>
+    _.each @list.collection.models, (model) ->
+      model.set 'sort_order', model.get('order_before_sort'), silent:true
+    @trigger 'sort_undone'
+  
+  # delegate() and undelegate() bind / unbind the events specified by @form and @list 
+  # as well as the internal events listened to by this class. 
   delegate: =>
     @undelegate()
-    @modelChanged = false  
     @bind()
     @form.delegateEvents()
     @list.delegateEvents()
-    app.controller = @
+    
+    # This reference makes the application instance aware of the fact this controller is currently locked and loaded.
+    @app.controller = @
     
   undelegate: =>
-    @modelChanged = false
     @unbind() 
     @form.undelegateEvents()
     @list.undelegateEvents()

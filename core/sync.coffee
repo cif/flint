@@ -5,6 +5,10 @@ class Sync
   constructor: ->
     Backbone.sync = @backbone
     this
+  
+  # gets change events from models as they happen.
+  changed: (model) =>
+    
         
   # this method overrides backbone.sync
   backbone: (method, model, options) =>  
