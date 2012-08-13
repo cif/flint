@@ -28,13 +28,14 @@ argv = optimist
 // load the configuration file and configure our tools
 try { 
   
+ // compile and watch generally do the same things, but watch will also watch the files  
  if(argv.compile || argv.watch) {
     
     cwd = process.cwd();
     flint = require(cwd + '/' + argv.file)
     base = path.dirname(argv.file) + '/'
 
-   // dependencies - todo, people are going to want to specify a load order for these 
+    // dependencies - todo, people are going to want to specify a load order for these 
     depencency = {} 
     depencency.in =  base + flint.config.dependencies
     depencency.out = base + flint.config.compile_dependencies_to
@@ -79,14 +80,16 @@ try {
       plater.watch()
   
     }
+    
+    // todo - deploy goes here.
   
   }
   
-   // this uses brewer to rebuilds the vendor/flint.js file from the core lib
+   // this uses brewer to rebuild the vendor/flint.js file from the ./core library files as Flint.Class .. 
   if( argv.build ) {
     
      if(argv.file){
-      
+        
         cwd = process.cwd();
         flint = require(cwd + '/' + argv.file)
         base = path.dirname(argv.file) + '/'
@@ -94,11 +97,12 @@ try {
       
       } else {
         
-        dest = './shell/vendor/flint.js'
+        dest = './app/vendor/flint.js'
         
       }
-     
+    
      coffee_maker = {}
+     coffee_maker.base = ''
      coffee_maker.in =  __dirname + '/../core/'
      coffee_maker.out = dest;
      coffee_maker.build = true

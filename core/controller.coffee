@@ -256,7 +256,7 @@ class Controller extends Backbone.Router
     @list.render @template_list
     
   # Handle any errors recived from validation or other     
-  error: (object, error) ->
+  error: (object, error) =>
     
     if console and console.log
       console.log('NOTICE: error triggered on controller: ' + error)
@@ -273,8 +273,8 @@ class Controller extends Backbone.Router
   # serialize the data and send to @app.sync
   sorted: (serialized) =>  
     @trigger 'sorted'
-    @app.notifications.notify
-      @messages.sorted, 
+    
+    @app.notifications.notify @messages.sorted, 
       @undo_sort_order, 
       =>
         # send request if confirmed
@@ -282,9 +282,7 @@ class Controller extends Backbone.Router
             type:'POST'
             data: 
               json:JSON.stringify(serialized)
-      
     
-  
   # Revert all the sort order attributes to their orignal state and broadcasts the event
   undo_sort_order: =>
     _.each @list.collection.models, (model) ->

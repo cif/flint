@@ -2,7 +2,7 @@
   "author"         : "Ben Ipsen <email@benipsen.com>",
   "name"           : "flint",
   "description"    : "Full Stack Coffeescript Development",
-  "version"        : "0.0.4",
+  "version"        : "0.0.6",
 
   "repository"     : {
     "type"           : "git",
@@ -15,7 +15,7 @@
   },
 
   "bin"            : {
-    "handlebar-rider": "./bin/flint"
+    "flint": "./bin/flint"
   },
 
   "engines"        : {

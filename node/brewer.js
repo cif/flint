@@ -106,10 +106,12 @@ fs = require('fs');
             spaced = coffee.scripts[s].namespace.substr(0, coffee.scripts[s].namespace.lastIndexOf('/')).replace(/\//g,'.')
           } else {
             spaced = coffee.scripts[s].namespace
-          }     
+            
+          } 
+              
              
           // flint gets uppercased because it is special
-          if(spaced == '')
+          if(spaced == '' || coffee.build)
             spaced = 'Flint'
             
           // in case you left a file empty... oops!  
@@ -317,7 +319,7 @@ fs = require('fs');
             if( files[i].indexOf('.coffee') > 0){
                
                if(watch)
-                  watchers.push( fs.watch(files[i], fileHasChanged) );
+                  watchers.push( fs.watch(dir + '/' + files[i], fileHasChanged) );
                
                coffee.scripts.push({
                 namespace: namespace,
@@ -331,8 +333,6 @@ fs = require('fs');
         })
         
     }
-    
-    console.log(coffee.scripts)
       
     compileTemplates();
       
@@ -343,9 +343,18 @@ fs = require('fs');
 exports.configure = function(config){ coffee = config; }
 exports.watch = function(){
   
-  console.log(color.yellow + '[brewer] watching template directory ' + coffee.base + coffee.in  + color.reset);
+  
   coffee.watch = true;
-  readAndCompile(coffee.in, true);
+  if(typeof coffee.in == 'string') {
+  
+    console.log(color.yellow + '[brewer] watching coffee directory ' + coffee.in  + color.reset);
+    readAndCompile(coffee.base + coffee.in, true);
+  
+  } else {
+  
+    console.log(color.yellow + '[brewer] watching '+ coffee.in.length + ' coffee folder(s) ' + color.reset)
+    readAndCompileFolders(coffee.in, true);
+  }
   
 }
 
