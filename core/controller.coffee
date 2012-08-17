@@ -105,8 +105,10 @@ class Controller extends Backbone.Router
     
   
   #  Binds the application components to common events which include:
-  #   creation, editing, sorting, saving, deleting, leaving the view (cancled)
-  bind: =>
+  #  creation, editing, sorting, saving, deleting, leaving the view (cancled)
+  bind: =>  
+  _bind: =>
+    @bind()
     @list.on 'create', @create
     @list.on 'edit', @edit
     @list.on 'sort', @sorted    
@@ -128,6 +130,8 @@ class Controller extends Backbone.Router
   
   #  Unbind frees up the memory consumed by listening for many events. 
   unbind: =>
+  _unbind: =>
+    @unbind()
     @list.off 'create edit sort'
     @list.collection.off 'add remove change error'
     @form.off 'delete saved canceled'
@@ -161,7 +165,8 @@ class Controller extends Backbone.Router
   __get:(id, callback, options) =>
     model = @list.collection.get(id)
     if !model
-      callback false
+      if callback
+        callback false
     else
       model.fetch
         silent: true
@@ -183,9 +188,12 @@ class Controller extends Backbone.Router
     model.save model, success: =>
         _tmpl = tmpl_compile(@messages.created)
         message = _tmpl(model.attributes)
-        @app.notifications.notify(message) unless not @app.notifications       
+        @app.notifications.notify(message) unless not @app.notifications or not @messages.created       
         @edit model.id
-        @list.render @template_list
+        # handle errors resulting from save and remove the model from the collection 
+      ,error: (model, message) =>
+          @app.notifications.error(message) unless not @app.notifications
+          @list.collection.remove model, silent:true
              
   # edit() renders an existing model into @form
   edit: (id) =>
@@ -205,7 +213,7 @@ class Controller extends Backbone.Router
     model.save null, success: =>
       _tmpl = tmpl_compile(@messages.saved)
       message = _tmpl(model.attributes)
-      @app.notifications.notify(message) unless not @app.notifications      
+      @app.notifications.notify(message) unless not @app.notifications or not @messages.saved      
   
   # deleted() is recieved from @list or @form and behaves differently than you might expect. 
   # Instead of blowing the model away, it retains a copy and will prompt undo
@@ -259,7 +267,7 @@ class Controller extends Backbone.Router
   error: (object, error) =>
     
     if console and console.log
-      console.log('NOTICE: error triggered on controller: ' + error)
+      console.log('NOTICE: error triggered on Flint.Controller: ' + error)
     error = error.responseText unless _.isString(error)
     
     # check to see if we are getting 401 and force the app to do an update call
@@ -271,9 +279,8 @@ class Controller extends Backbone.Router
 
   # sorted() handles sorting from @list. if the user confirms instead of undoing their action 
   # serialize the data and send to @app.sync
-  sorted: (serialized) =>  
-    @trigger 'sorted'
-    
+  sorted: (serialized) =>
+    @trigger 'sorted'  
     @app.notifications.notify @messages.sorted, 
       @undo_sort_order, 
       =>
@@ -283,17 +290,18 @@ class Controller extends Backbone.Router
             data: 
               json:JSON.stringify(serialized)
     
-  # Revert all the sort order attributes to their orignal state and broadcasts the event
+  # Revert all the sort order attributes to their orignal state and broadcast sort_undone event
   undo_sort_order: =>
     _.each @list.collection.models, (model) ->
       model.set 'sort_order', model.get('order_before_sort'), silent:true
+    @list.collection.sort()
     @trigger 'sort_undone'
   
   # delegate() and undelegate() bind / unbind the events specified by @form and @list 
   # as well as the internal events listened to by this class. 
   delegate: =>
     @undelegate()
-    @bind()
+    @_bind()
     @form.delegateEvents()
     @list.delegateEvents()
     
@@ -301,7 +309,7 @@ class Controller extends Backbone.Router
     @app.controller = @
     
   undelegate: =>
-    @unbind() 
+    @_unbind()
     @form.undelegateEvents()
     @list.undelegateEvents()
       

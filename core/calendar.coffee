@@ -60,12 +60,15 @@ class Calendar extends Backbone.View
   #
   # renders using the month() template
   #
-  render:  ->      
+  render: (year=false, month=false)  ->
+    @year = year if year
+    @month = month if month      
     data =
       month_name: @month_labels[@month]
       day_labels: @day_labels  
       month: @month
       year: @year 
+    
     $(@el).html Handlebars.templates.month(data)
   
   #
@@ -106,20 +109,20 @@ class Calendar extends Backbone.View
       @month = 0
     else
       @month++ 
-    @render(@month, @year)
+    @render(@year, @month)
     @set_focus_and_highlight()
     @trigger('next', @)
   
   #
   # renders the previous month
   #    
-  previous_month: ->
-    if @month is 0
+  previous_month: ->  
+    if @month is '0' or @month is 0
       @year--
       @month = 11
     else
       @month--
-    @render(@month, @year)
+    @render(@year, @month)
     @set_focus_and_highlight()
     @trigger('prev', @)
   

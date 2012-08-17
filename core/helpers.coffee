@@ -290,6 +290,12 @@ class Helpers
     d = js.getDate()
     y = js.getFullYear()
     m + '/' + d + '/' + y
+    
+  js_to_slash: (js) =>
+    m = (js.getMonth() + 1)
+    d = js.getDate()
+    y = js.getFullYear()
+    m + '/' + d + '/' + y  
   
   # ___________ miscelaneous formatting helpers ___________
   

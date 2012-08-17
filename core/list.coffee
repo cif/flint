@@ -31,7 +31,7 @@ class List extends Backbone.View
     if @template and @data
       $(@el).html tmpl[@template](@data)
     else if console and console.log
-      console.log('WARNING Flint.List: @template or @data is undefined.')
+      console.log('WARNING Flint.List: @template or @data is undefined, unable to render view.')
     
     # make sortable
     if @sortable
@@ -101,17 +101,19 @@ class List extends Backbone.View
   # sortable handler
   #   
   sorted: =>
+    console.log('sorting.')
     @serialized = []
     order = 0
-    _.each(@sortable.find('li'), (item, index) =>
+    _.each @sortable.find('li'), (item, index) =>
       id = item.getAttribute('id')
-      last_order =   @collection.get(id).get('sort_order')
-      @collection.get(id).set({sort_order:index, order_before_sort:last_order}, {silent:true})
+      last_order = @collection.get(id).get('sort_order')
+      @collection.get(id).set 'sort_order', index, silent:true 
+      @collection.get(id).set 'order_before_sort', last_order, silent:true      
       @serialized.push({
         id:id,
         sort_order:index
       })    
-    )
+  
     @collection.sort()
     @trigger 'sort', @serialized
   
