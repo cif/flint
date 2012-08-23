@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/cif/flint.png)](http://travis-ci.org/cif/flint)
 # flint
 ================
 
