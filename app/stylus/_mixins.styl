@@ -1,0 +1,83 @@
+
+/* variables */
+
+
+/* mixins */
+
+rounded()
+  -webkit-border-radius arguments
+  -moz-border-radius arguments
+  border-radius arguments
+
+box-shadow()  
+  box-shadow  arguments
+  -moz-box-shadow  arguments
+  -webkit-box-shadow  arguments
+
+transform()
+  -webkit-transform arguments
+  -moz-transform arguments
+  -ms-transform arguments
+  -o-transform arguments
+  transform arguments
+  
+gradient(startcolor=#fff, endcolor=#000, startx=left, starty=top, endx=left, endy=bottom)
+   background-image linear-gradient(startx starty, startcolor 0%, endcolor 100%)
+   background-image -o-linear-gradient(startx starty, startcolor 0%, endcolor 100%)
+   background-image -moz-linear-gradient(startx starty, startcolor 0%, endcolor 100%)
+   background-image -webkit-linear-gradient(startx starty, startcolor 0%, endcolor 100%)
+   background-image -ms-linear-gradient(startx starty, startcolor 0%, endcolor 100%)
+   background-image -webkit-gradient(linear,
+   	startx starty,
+   	endx endy,
+   	color-stop(0, startcolor),
+   	color-stop(1, endcolor)
+   )
+
+radial(startcolor=#fff, endcolor=#000, xlocation=center, ylocation=center, innersize=10px, outtersize=50px, shape=circle)
+  background-image -moz-radial-gradient(xlocation, shape,  startcolor innersize, endcolor outtersize) 
+  background-image -webkit-radial-gradient(xlocation ylocation, shape, startcolor innersize, endcolor outtersize)
+  background-image -o-radial-gradient(xlocation ylocation, shape,  startcolor innersize, endcolor outtersize)
+  background-image -ms-radial-gradient(xlocation ylocation, shape,  startcolor innersize, endcolor outtersize)
+  background-image radial-gradient(xlocation ylocation, shape,  startcolor innersize, endcolor outtersize)
+  filter none
+
+repeating_gradient(angle= 0deg, startcolor=#000, startwidth=11px, endcolor=#fff, endwidth=11px, finalwidth=22px)
+  background-image -webkit-repeating-linear-gradient(angle, startcolor, startcolor startwidth, endcolor endwidth, endcolor finalwidth)
+  background-image -moz-repeating-linear-gradient(angle, startcolor, startcolor startwidth, endcolort endwidth, endcolor finalwidth)
+  background-image -o-repeating-linear-gradient(angle, startcolor, startcolor startwidth, endcolor endwidth, endcolor finalwidth)
+  background-image repeating-linear-gradient(angle, startcolor, startcolor startwidth, endcolor endwidth, endcolor finalwidth)
+
+
+transition(property=all, duration=.25s, ease=ease-out, delay=now)
+  -webkit-transition property duration ease
+  -moz-transition property duration ease
+  -o-transition property duration ease
+  -ms-transition property duration ease
+  -webkit-transition-delay delay
+  
+disable-selection()
+  -webkit-touch-callout none
+  -webkit-user-select none
+  -khtml-user-select none
+  -moz-user-select none
+  -ms-user-select none
+  user-select none  
+  cursor default
+     
+animation(name, duration=1s, iteration=infinite, direction=normal, delay=0)
+  animation-name name 
+  -moz-animation-name name 
+  -webkit-animation-name name 
+  animation-duration duration 
+  -moz-animation-duration duration
+  -webkit-animation-duration duration
+  animation-iteration-count iteration 
+  -webkit-animation-iteration-count iteration 
+  -moz-animation-iteration-count iteration
+  animation-direction direction
+  -webkit-animation-direction direction
+  -moz-animation-direction direction
+  animation-delay delay
+  -webkit-animation-delay delay
+  -moz-animation-delay delay

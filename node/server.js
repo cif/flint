@@ -11,6 +11,7 @@ app.all('*', function(req, res){
   console.log(method)
   console.log(uri)
   res.send('testing.');
+  
 })
 
 

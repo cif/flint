@@ -4,33 +4,33 @@ class Helpers
   constructor: ->
     
     # register class methods with handlebars
-    Handlebars.registerHelper('eq', @eq)
-    Handlebars.registerHelper('check_role', @check_role)
+    Handlebars.registerHelper 'eq', @eq
+    Handlebars.registerHelper 'check_role', @check_role
           
-    Handlebars.registerHelper('link', @link)
-    Handlebars.registerHelper('link_nohref', @link_nohref)
-    Handlebars.registerHelper('list', @list)
-    Handlebars.registerHelper('filtered_list', @filtered_list)
+    Handlebars.registerHelper 'link', @link
+    Handlebars.registerHelper 'link_nohref', @link_nohref
+    Handlebars.registerHelper 'list', @list
+    Handlebars.registerHelper 'filtered_list', @filtered_list
       
-    Handlebars.registerHelper('input', @input)
-    Handlebars.registerHelper('text_field', @text_field)
-    Handlebars.registerHelper('password', @password)
-    Handlebars.registerHelper('select', @select)
-    Handlebars.registerHelper('select_range', @select_range)
-    Handlebars.registerHelper('radio', @radio)
-    Handlebars.registerHelper('checkbox', @checkbox)
-    Handlebars.registerHelper('text_area', @text_area)
+    Handlebars.registerHelper 'input', @input
+    Handlebars.registerHelper 'text_field', @text_field
+    Handlebars.registerHelper 'password', @password
+    Handlebars.registerHelper 'select', @select
+    Handlebars.registerHelper 'select_range', @select_range
+    Handlebars.registerHelper 'radio', @radio
+    Handlebars.registerHelper 'checkbox', @checkbox
+    Handlebars.registerHelper 'text_area', @text_area
     
-    
-    Handlebars.registerHelper('month_grid', @month_grid)
-    Handlebars.registerHelper('date_today', @date_today)
-    Handlebars.registerHelper('sql_to_slash', @sql_to_slash)
-    
-    Handlebars.registerHelper('dollar', @dollar)
-    Handlebars.registerHelper('random', @random)
-    Handlebars.registerHelper('sum', @sum)
-    Handlebars.registerHelper('truncate', @truncate)
-    Handlebars.registerHelper('repeater', @repeater)
+    Handlebars.registerHelper 'month_grid', @month_grid
+    Handlebars.registerHelper 'date_today', @date_today
+    Handlebars.registerHelper 'sql_to_slash', @sql_to_slash
+    Handlebars.registerHelper 'date_format', @date_format   # requires momentjs lib
+    Handlebars.registerHelper 'twenty_four_to_twelve', @twenty_four_to_twelve
+    Handlebars.registerHelper 'dollar', @dollar
+    Handlebars.registerHelper 'random', @random
+    Handlebars.registerHelper 'sum', @sum
+    Handlebars.registerHelper 'truncate', @truncate
+    Handlebars.registerHelper 'repeater', @repeater
     
     @initialize()
     
@@ -278,6 +278,11 @@ class Helpers
       sp[2] = sp[2].substr(0, sp[2].indexOf(' '))
     new Date(sp[0], sp[1]-1, sp[2])
   
+  date_format: (date, format) =>
+    if !date or date is '' or date is '0000-00-00' or date is '0000-00-00 00:00:00'
+      return 'N/A'
+    moment(date).format(format)
+  
   sql_to_slash: (sql) =>
     if !sql or sql is '0000-00-00' or sql is '' 
       return ''
@@ -325,7 +330,7 @@ class Helpers
     sum  
   
   truncate: (str, length) ->
-    if str.length > length
+    if str and str.length > length
       return str.substr(0, length) + '...'
     else
       return str

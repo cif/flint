@@ -27,11 +27,18 @@ class List extends Backbone.View
     @template = template if template
     @data = data if data    
     @before()
-    
-    if @template and @data
+     
+    # default data is simply the collection models as template variable 'items'. 
+    # if the collection needs to be marshaled more than once (particuarly sorted) 
+    # you should do so in a custom before() method 
+    if !@data
+      @data = 
+        items: @collection.models
+      
+    if @template
       $(@el).html tmpl[@template](@data)
     else if console and console.log
-      console.log('WARNING Flint.List: @template or @data is undefined, unable to render view.')
+      console.log('WARNING Flint.List: @template is undefined, unable to render view.')
     
     # make sortable
     if @sortable
@@ -101,20 +108,23 @@ class List extends Backbone.View
   # sortable handler
   #   
   sorted: =>
-    console.log('sorting.')
     @serialized = []
     order = 0
     _.each @sortable.find('li'), (item, index) =>
       id = item.getAttribute('id')
-      last_order = @collection.get(id).get('sort_order')
-      @collection.get(id).set 'sort_order', index, silent:true 
-      @collection.get(id).set 'order_before_sort', last_order, silent:true      
-      @serialized.push({
-        id:id,
-        sort_order:index
-      })    
-  
+      model = @collection.get(id)
+      if model
+        last_order = model.get('sort_order')
+        @collection.get(id).set 'sort_order', index, silent:true 
+        @collection.get(id).set 'order_before_sort', last_order, silent:true      
+        @serialized.push
+          id: id
+          sort_order: index    
+    
+    # sort the collection and update default data. custom before() methods should override @data setting.
     @collection.sort()
+    @data = 
+        items: @collection.models
     @trigger 'sort', @serialized
   
   #

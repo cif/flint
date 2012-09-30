@@ -61,8 +61,8 @@ class Calendar extends Backbone.View
   # renders using the month() template
   #
   render: (year=false, month=false)  ->
-    @year = year if year
-    @month = month if month      
+    @year = year if year or year is 0 or year is '0'
+    @month = month if month or month is 0 or month is '0'
     data =
       month_name: @month_labels[@month]
       day_labels: @day_labels  
@@ -104,7 +104,7 @@ class Calendar extends Backbone.View
   #  renders the next month
   #  
   next_month: ->
-    if (@month + 1) is 12
+    if (parseInt(@month) + 1) is 12
       @year++
       @month = 0
     else
@@ -117,7 +117,7 @@ class Calendar extends Backbone.View
   # renders the previous month
   #    
   previous_month: ->  
-    if @month is '0' or @month is 0
+    if parseInt(@month) is 0
       @year--
       @month = 11
     else

@@ -1,0 +1,109 @@
+
+@import '_mixins.styl'
+
+body, html
+	margin 0 auto
+	padding 0
+	background rgba(0,0,0,0.9) url('https://s3.amazonaws.com/flybook-asset/desktops/flyfish-lighter.jpg') center center no-repeat fixed
+	background-size cover
+	font default_font
+	color text_color
+	text-shadow 1px 1px text_shadow_color
+	line-height 25px
+	min-width 800px
+	min-height 650px
+	width 100%
+		
+a
+	color link_color
+	text-decoration none
+a:hover
+	text-decoration underline
+
+p
+	margin 5px 0
+	clear both
+
+.small
+	font-size 11px
+	line-height 16px
+
+.highlight
+	font-size 12px
+	line-hight 16px
+	padding 10px
+	background highlight_color
+
+.error-msg
+	color #cc0000
+
+h1
+	font-size 21px
+	float left
+	font-family 'Museo700Regular', serif
+	font-weight normal
+	letter-spacing 0
+	margin 10px 0 5px 0
+	padding 11px 0 5px 0
+	text-shadow none
+	color 333
+    
+h2
+	font-size 16px
+	font-family 'Helvetica', sans-serif
+	font-weight normal
+	padding 10px 0 5px 0
+	margin 0
+	text-shadow none
+	clear both
+
+h3
+	clear both
+	font-size 12px
+	font-family 'MuseoSans700Regular', serif
+	text-transform uppercase
+	letter-spacing 1px
+	font-weight normal
+	border-bottom 1px solid #ddd
+	color #777
+	margin 0 0 4px 0
+	padding 4px 0 0 0
+	
+h5
+	margin 0
+
+
+h6
+	font-size 11px
+	text-transform uppercase
+	padding 5px 0
+	margin 0
+	font-weight normal
+	  
+#app
+	transition()
+	position absolute
+	top 40px
+	width 450px
+	z-index 1
+	min-height 200px
+	left -560px	
+	padding 0 20px 40px 20px
+	margin 0 0 15px 0
+	box-shadow 1px 1px 4px rgba(0,0,0,0.2)
+	border-radius 0 0 8px 0
+	background #fff
+
+#dropdown
+	position fixed
+	top 0
+	z-index 3
+	width 100%
+	height 0
+	background #fff
+	transition()
+	box-shadow 0 1px 1px rgba(0,0,0,0.2)
+	.loader
+		position relative
+		top 80px
+	

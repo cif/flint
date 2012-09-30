@@ -1,0 +1,5 @@
+
+class Mongo
+  
+  constructor: ->
+    

@@ -11,11 +11,10 @@ class Controller extends Backbone.Router
   
   # Specify a template path for each CRUD action. 
   # There is also an optional help_template property
-  template_create : 'forms/create'
-  template_edit   : 'forms/edit'
-  template_view   : 'forms/view'
-  template_list   : 'forms/list'  
-  template_help   : false
+  template_create : 'default/create'
+  template_edit   : 'default/edit'
+  template_view   : 'default/view'
+  template_list   : 'default/list'
   
   # Specify the collection and model classes if the exist.
   # Note that these are strings and not references to the classes themselves.    
@@ -94,7 +93,7 @@ class Controller extends Backbone.Router
     @app = app
     
     # Call @init
-    @init(app)  
+    @init.apply(@, arguments)
     
     # Return the instance  
     this
@@ -105,7 +104,7 @@ class Controller extends Backbone.Router
     
   
   #  Binds the application components to common events which include:
-  #  creation, editing, sorting, saving, deleting, leaving the view (cancled)
+  #  creation, editing, sorting, saving, deleting, leaving the view (canceled)
   bind: =>  
   _bind: =>
     @bind()
@@ -137,12 +136,13 @@ class Controller extends Backbone.Router
     @form.off 'delete saved canceled'
     @form.model.off 'error'
     @.off 'saved deleted sorted destroyed delete_undone sort_undone destroy_error'
+  
     
   # fetch()
   # is a helper method that will fetch the list from the server 
   # without having to rewrite this routine each time you want to make sure the collection is there
-  fetch: (callback) =>
-    if @list.collection.length > 0
+  fetch: (callback, refresh=false) =>
+    if @list.collection.length > 0 and !refresh
       return callback @list.collection
     else
       @list.collection.fetch
@@ -171,7 +171,22 @@ class Controller extends Backbone.Router
       model.fetch
         silent: true
         success: => 
-          callback model
+          if callback
+            callback model
+          
+  #  grab(id)
+  #  is the synchronous version of get - will return false if the collection is empty, 
+  #  or try to find the object via Collection.get()
+  grab: (id) =>
+    if @list.collection.length is 0
+      model = false
+    else
+      model = @list.collection.get(id)
+    model
+  
+  # refresh() simply calls fetch with refresh argument set to true, it will grab the collection from the data store
+  refresh: (callback) =>
+    @fetch callback, true
             
   # create() is the c in your crud. it will render a new model instance into your form 
   # using defaults to populate any values specified.
@@ -190,6 +205,7 @@ class Controller extends Backbone.Router
         message = _tmpl(model.attributes)
         @app.notifications.notify(message) unless not @app.notifications or not @messages.created       
         @edit model.id
+        @trigger 'returned', model
         # handle errors resulting from save and remove the model from the collection 
       ,error: (model, message) =>
           @app.notifications.error(message) unless not @app.notifications
@@ -210,11 +226,13 @@ class Controller extends Backbone.Router
   #  as a result Flint.Sync becomes aware of this change. 
   saved: (model) =>
     @trigger 'saved', model
+    @app.notifications.notify('Saving...') unless not @app.notifications
     model.save null, success: =>
       _tmpl = tmpl_compile(@messages.saved)
       message = _tmpl(model.attributes)
       @app.notifications.notify(message) unless not @app.notifications or not @messages.saved      
-  
+      @trigger 'returned', model
+      
   # deleted() is recieved from @list or @form and behaves differently than you might expect. 
   # Instead of blowing the model away, it retains a copy and will prompt undo
   deleted: (model, collection, options) =>
@@ -261,7 +279,7 @@ class Controller extends Backbone.Router
   # Update is a handy method to overide which gets all the events broadcast by this class that 
   # by default, it will simply re-render the list view
   update: =>
-    @list.render @template_list
+    @list.render()
     
   # Handle any errors recived from validation or other     
   error: (object, error) =>

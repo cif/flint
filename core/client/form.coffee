@@ -17,11 +17,11 @@ class Form extends Backbone.View
     'submit form' : 'nosubmit'
   
   # initialize() is called by Backbone.View automaticallly, there was not a need to overwrite the contructor in this case 
-  initialize: (options) ->
+  initialize: ->  
     # extend additional events by the subclass
-    @events = _.extend({}, @_events, @events)
+    @events = _.extend {}, @_events, @events
     # call init for any other task, useful if you have to create life-cycle instances in a form class.
-    @init()
+    @init.apply @, arguments
     this
   
   init: =>
@@ -34,7 +34,7 @@ class Form extends Backbone.View
     if model 
       @model = model
       @data.model = @model  
-      @data = _.extend({}, @data, @model.attributes)
+      @data = _.extend {}, @data, @model.attributes
     
     # call before() using the actual markup replacement routine as a callback
     @before =>
@@ -51,7 +51,8 @@ class Form extends Backbone.View
   after: ->
   
   
-  # changed() is called from the events property on form inputs. 
+  # changed() is called from the events property on form inputs.
+  # this will broadcast two events, changed and changed:[property] if you want to listen to a specific property's change 
   changed: (e) ->
     # stop propegation and get the target
     e.stopPropagation()  
@@ -83,7 +84,7 @@ class Form extends Backbone.View
   # because the controller is listening for collection added event we need not broadcast anything
   save: ->
     @collection.add(@model)
-      
+  
   # done() is called when a DOM element with class="done" is clicked. it is used for saving changes made to a model
   # done() can be called with an optional silent argument which avoids the 'saved' event from firing 
   done: (silent=false) =>
@@ -94,7 +95,7 @@ class Form extends Backbone.View
   # this method will unrender the view and trigger a 'canceled' event
   # cancel() can be called with an option silent argument that will avoid the event from firing.
   cancel: (silent=false) =>
-    @trigger 'canceled' unless silent
+    @trigger 'canceled', @model unless silent and !_.isObject(silent)
     $(@el).empty()
   
   # save() is called when a DOM element with class="delete" is clicked. it removes a model from the collection

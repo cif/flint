@@ -1,0 +1,6 @@
+
+class MySql
+  
+  constructor: ->
+    
+  
