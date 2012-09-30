@@ -34,8 +34,11 @@ try {
 
   // load the configuration and the base dir
   cwd = process.cwd();
-  flint = require(cwd + '/' + argv.file)
-  base = path.resolve(path.dirname(argv.file)) + '/'
+  
+  if(!argv.new){
+    flint = require(cwd + '/' + argv.file)
+    base = path.resolve(path.dirname(argv.file)) + '/'
+  }
   
  // compile and watch generally do the same things, but watch will also watch the files  
  if(argv.compile || argv.watch || argv.deploy) {
