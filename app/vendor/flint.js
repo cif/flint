@@ -68,8 +68,12 @@ Flint.Calendar = (function() {
     return $('#' + this.focus_date).addClass('fb-today');
   };
 
-  Calendar.prototype.render = function() {
+  Calendar.prototype.render = function(year, month) {
     var data;
+    if (year == null) year = false;
+    if (month == null) month = false;
+    if (year || year === 0 || year === '0') this.year = year;
+    if (month || month === 0 || month === '0') this.month = month;
     data = {
       month_name: this.month_labels[this.month],
       day_labels: this.day_labels,
@@ -110,25 +114,25 @@ Flint.Calendar = (function() {
   };
 
   Calendar.prototype.next_month = function() {
-    if ((this.month + 1) === 12) {
+    if ((parseInt(this.month) + 1) === 12) {
       this.year++;
       this.month = 0;
     } else {
       this.month++;
     }
-    this.render(this.month, this.year);
+    this.render(this.year, this.month);
     this.set_focus_and_highlight();
     return this.trigger('next', this);
   };
 
   Calendar.prototype.previous_month = function() {
-    if (this.month === 0) {
+    if (parseInt(this.month) === 0) {
       this.year--;
       this.month = 11;
     } else {
       this.month--;
     }
-    this.render(this.month, this.year);
+    this.render(this.year, this.month);
     this.set_focus_and_highlight();
     return this.trigger('prev', this);
   };
@@ -155,6 +159,26 @@ Flint.Calendar = (function() {
 
 })();
 
+Flint.Collection = (function() {
+
+  __extends(Collection, Backbone.Collection);
+
+  function Collection() {
+    Collection.__super__.constructor.apply(this, arguments);
+  }
+
+  Collection.prototype.comparator = function(model) {
+    return +model.get('sort_order');
+  };
+
+  Collection.prototype.put = function(data) {};
+
+  Collection.prototype.post = function(data) {};
+
+  return Collection;
+
+})();
+
 Flint.Controller = (function() {
 
   __extends(Controller, Backbone.Router);
@@ -164,31 +188,36 @@ Flint.Controller = (function() {
     this.delegate = __bind(this.delegate, this);
     this.undo_sort_order = __bind(this.undo_sort_order, this);
     this.sorted = __bind(this.sorted, this);
+    this.error = __bind(this.error, this);
+    this.update = __bind(this.update, this);
     this.destroy = __bind(this.destroy, this);
     this.undo_delete = __bind(this.undo_delete, this);
-    this.update = __bind(this.update, this);
     this.deleted = __bind(this.deleted, this);
     this.saved = __bind(this.saved, this);
     this.changed = __bind(this.changed, this);
     this.edit = __bind(this.edit, this);
     this.added = __bind(this.added, this);
     this.create = __bind(this.create, this);
+    this.refresh = __bind(this.refresh, this);
+    this.grab = __bind(this.grab, this);
     this.__get = __bind(this.__get, this);
     this.get = __bind(this.get, this);
     this.fetch = __bind(this.fetch, this);
+    this._unbind = __bind(this._unbind, this);
     this.unbind = __bind(this.unbind, this);
+    this._bind = __bind(this._bind, this);
     this.bind = __bind(this.bind, this);
     this.init = __bind(this.init, this);
     Controller.__super__.constructor.apply(this, arguments);
   }
 
-  Controller.prototype.template_create = 'forms/create';
+  Controller.prototype.template_create = 'default/create';
 
-  Controller.prototype.template_edit = 'forms/edit';
+  Controller.prototype.template_edit = 'default/edit';
 
-  Controller.prototype.template_list = 'forms/list';
+  Controller.prototype.template_view = 'default/view';
 
-  Controller.prototype.template_help = false;
+  Controller.prototype.template_list = 'default/list';
 
   Controller.prototype.collection = false;
 
@@ -227,8 +256,6 @@ Flint.Controller = (function() {
     });
     list = views[this.list] ? views[this.list] : Flint[this.list];
     if (!list) throw new Error('List class "' + this.list + '" does not exists');
-    form = views[this.form] ? views[this.form] : Flint[this.form];
-    if (!form) throw new Error('Form class "' + this.form + '" does not exists');
     this.list = new list({
       el: this.list_el
     }, this.sortable);
@@ -237,21 +264,29 @@ Flint.Controller = (function() {
     if (this.template_help) this.list.template_help = this.template_help;
     this.list.collection = this.collection ? new collections[this.collection] : new Backbone.Collection;
     this.list.collection.model = this.model ? models[this.model] : Backbone.Model;
+    form = views[this.form] ? views[this.form] : Flint[this.form];
+    if (!form) throw new Error('Form class "' + this.form + '" does not exists');
     this.form = new form({
       el: this.form_el
     });
     this.form.model = new this.list.collection.model;
     this.form.collection = this.list.collection;
     this.form.valid_changes = this.valid_changes;
+    this.list.undelegateEvents();
+    this.form.undelegateEvents();
     app.register(this);
-    this.init(app);
+    this.app = app;
+    this.init.apply(this, arguments);
     return this;
   };
 
   Controller.prototype.init = function() {};
 
-  Controller.prototype.bind = function() {
+  Controller.prototype.bind = function() {};
+
+  Controller.prototype._bind = function() {
     var _this = this;
+    this.bind();
     this.list.on('create', this.create);
     this.list.on('edit', this.edit);
     this.list.on('sort', this.sorted);
@@ -268,7 +303,10 @@ Flint.Controller = (function() {
     return this.on('saved deleted sorted destroyed delete_undone sort_undone destroy_error', this.update);
   };
 
-  Controller.prototype.unbind = function() {
+  Controller.prototype.unbind = function() {};
+
+  Controller.prototype._unbind = function() {
+    this.unbind();
     this.list.off('create edit sort');
     this.list.collection.off('add remove change error');
     this.form.off('delete saved canceled');
@@ -276,10 +314,10 @@ Flint.Controller = (function() {
     return this.off('saved deleted sorted destroyed delete_undone sort_undone destroy_error');
   };
 
-  Controller.prototype.fetch = function(callback, options) {
+  Controller.prototype.fetch = function(callback, refresh) {
     var _this = this;
-    if (options == null) options = {};
-    if (this.list.collection.length > 0 && !options.force) {
+    if (refresh == null) refresh = false;
+    if (this.list.collection.length > 0 && !refresh) {
       return callback(this.list.collection);
     } else {
       return this.list.collection.fetch({
@@ -309,17 +347,29 @@ Flint.Controller = (function() {
     var _this = this;
     model = this.list.collection.get(id);
     if (!model) {
-      return callback(false);
-    } else if (options.cached) {
-      return callback(model);
+      if (callback) return callback(false);
     } else {
       return model.fetch({
         silent: true,
         success: function() {
-          return callback(model);
+          if (callback) return callback(model);
         }
       });
     }
+  };
+
+  Controller.prototype.grab = function(id) {
+    var model;
+    if (this.list.collection.length === 0) {
+      model = false;
+    } else {
+      model = this.list.collection.get(id);
+    }
+    return model;
+  };
+
+  Controller.prototype.refresh = function(callback) {
+    return this.fetch(callback, true);
   };
 
   Controller.prototype.create = function() {
@@ -333,67 +383,70 @@ Flint.Controller = (function() {
   Controller.prototype.added = function(model) {
     var _this = this;
     this.trigger('added', model);
-    app.notifications.notify('Saving...');
+    if (!!this.app.notifications) this.app.notifications.notify('Saving...');
     return model.save(model, {
       success: function() {
         var message, _tmpl;
         _tmpl = tmpl_compile(_this.messages.created);
         message = _tmpl(model.attributes);
-        app.notifications.notify(message);
+        if (!(!_this.app.notifications || !_this.messages.created)) {
+          _this.app.notifications.notify(message);
+        }
         _this.edit(model.id);
-        return _this.list.render(_this.template_list);
+        return _this.trigger('returned', model);
+      },
+      error: function(model, message) {
+        if (!!_this.app.notifications) _this.app.notifications.error(message);
+        return _this.list.collection.remove(model, {
+          silent: true
+        });
       }
     });
   };
 
   Controller.prototype.edit = function(id) {
     var model;
-    this.modelChanged = false;
     model = this.list.collection.get(id);
     return this.form.render(this.template_edit, {}, model);
   };
 
   Controller.prototype.changed = function(model) {
-    this.modelChanged = true;
+    if (!!this.app.sync) this.app.sync.changed(model);
     return this.trigger('changed', model);
   };
 
-  Controller.prototype.saved = function(model, retro) {
+  Controller.prototype.saved = function(model) {
     var _this = this;
-    if (retro == null) retro = false;
-    if (this.modelChanged || retro) {
-      this.modelChanged = false;
-      return model.save(null, {
-        success: function() {
-          var message, _tmpl;
-          if (retro) {
-            return _this.form.cancel();
-          } else {
-            _tmpl = tmpl_compile(_this.messages.saved);
-            message = _tmpl(model.attributes);
-            app.notifications.notify(message);
-            return _this.trigger('saved', model);
-          }
+    this.trigger('saved', model);
+    if (!!this.app.notifications) this.app.notifications.notify('Saving...');
+    return model.save(null, {
+      success: function() {
+        var message, _tmpl;
+        _tmpl = tmpl_compile(_this.messages.saved);
+        message = _tmpl(model.attributes);
+        if (!(!_this.app.notifications || !_this.messages.saved)) {
+          _this.app.notifications.notify(message);
         }
-      });
-    }
+        return _this.trigger('returned', model);
+      }
+    });
   };
 
   Controller.prototype.deleted = function(model, collection, options) {
     var Deletable, message, _tmpl;
+    this.trigger('deleted', model);
     if (this.to_delete) this.destroy();
     Deletable = Backbone.Model.extend({
       url: this.list.collection.url
     });
     this.to_delete = new Deletable(model.attributes);
-    _tmpl = tmpl_compile(this.messages.delete_warn);
-    message = _tmpl(model.attributes);
-    app.notifications.notify(message, this.undo_delete, this.destroy);
-    return this.trigger('deleted', model);
-  };
-
-  Controller.prototype.update = function() {
-    return this.list.render(this.template_list);
+    if (this.app.notifications) {
+      _tmpl = tmpl_compile(this.messages.delete_warn);
+      message = _tmpl(model.attributes);
+      return this.app.notifications.notify(message, this.undo_delete, this.destroy);
+    } else {
+      return this.destroy();
+    }
   };
 
   Controller.prototype.undo_delete = function() {
@@ -409,11 +462,14 @@ Flint.Controller = (function() {
     return this.to_delete.destroy({
       success: function(data, response) {
         if (response && response.error) {
-          app.notifications.error(response.error);
+          if (!!_this.app.notifications) {
+            _this.app.notifications.error(response.error);
+          }
           _this.list.collection.add(_this.to_delete, {
             silent: true
           });
-          return _this.trigger('destroyed', _this.to_delete);
+          _this.trigger('destroyed', _this.to_delete);
+          return _this.update();
         } else {
           return _this.trigger('destroy_error', _this.to_delete);
         }
@@ -421,23 +477,27 @@ Flint.Controller = (function() {
     });
   };
 
+  Controller.prototype.update = function() {
+    return this.list.render();
+  };
+
   Controller.prototype.error = function(object, error) {
     if (console && console.log) {
-      console.log('Flint: error triggered on controller: ' + error);
+      console.log('NOTICE: error triggered on Flint.Controller: ' + error);
     }
     if (!_.isString(error)) error = error.responseText;
     if (error.indexOf('401') > 0) {
-      return app.update();
+      if (!!this.app.update) return this.app.update();
     } else {
-      return app.notifications.error(error);
+      if (!!this.app.notifications) return this.app.notifications.error(error);
     }
   };
 
   Controller.prototype.sorted = function(serialized) {
     var _this = this;
     this.trigger('sorted');
-    return app.notifications.notify(this.messages.sorted, this.undo_sort_order, function() {
-      return app.sync.ajax(_this.sorted_url, {
+    return this.app.notifications.notify(this.messages.sorted, this.undo_sort_order, function() {
+      return _this.app.sync.ajax(_this.sorted_url, {
         type: 'POST',
         data: {
           json: JSON.stringify(serialized)
@@ -452,21 +512,20 @@ Flint.Controller = (function() {
         silent: true
       });
     });
+    this.list.collection.sort();
     return this.trigger('sort_undone');
   };
 
   Controller.prototype.delegate = function() {
     this.undelegate();
-    this.modelChanged = false;
-    this.bind();
+    this._bind();
     this.form.delegateEvents();
     this.list.delegateEvents();
-    return app.controller = this;
+    return this.app.controller = this;
   };
 
   Controller.prototype.undelegate = function() {
-    this.modelChanged = false;
-    this.unbind();
+    this._unbind();
     this.form.undelegateEvents();
     return this.list.undelegateEvents();
   };
@@ -497,9 +556,9 @@ Flint.Form = (function() {
     'submit form': 'nosubmit'
   };
 
-  Form.prototype.initialize = function(options) {
+  Form.prototype.initialize = function() {
     this.events = _.extend({}, this._events, this.events);
-    this.init();
+    this.init.apply(this, arguments);
     return this;
   };
 
@@ -509,8 +568,9 @@ Flint.Form = (function() {
     var _this = this;
     this.template = template;
     this.data = data != null ? data : {};
-    this.model = model;
-    if (this.model) {
+    if (model == null) model = false;
+    if (model) {
+      this.model = model;
       this.data.model = this.model;
       this.data = _.extend({}, this.data, this.model.attributes);
     }
@@ -528,34 +588,32 @@ Flint.Form = (function() {
   Form.prototype.after = function() {};
 
   Form.prototype.changed = function(e) {
-    var attribute, input, val;
+    var attribute, input, value;
     e.stopPropagation();
     input = $(e.target);
-    val = input.val();
+    value = input.val();
     if (input.attr('type') === 'checkbox') {
       if (input.is(':checked')) {
-        val = 1;
+        value = 1;
       } else {
-        val = 0;
+        value = 0;
       }
     }
-    if (!_.isUndefined(val)) {
+    if (input.hasClass('num')) {
+      value = value.toString().replace(/[A-Za-z$-,]/g, '');
+    }
+    if (!_.isUndefined(value)) {
       attribute = input.attr('name');
       this.model.set(attribute, val.toString(), {
         silent: !this.valid_changes
       });
-      return this.trigger('changed', e, this);
+      this.trigger('changed', this.model, attribute, value);
+      return this.trigger('changed:' + attribute, this.model, value);
     }
   };
 
   Form.prototype.save = function() {
-    var valid;
-    valid = this.model.validate(this.model.attributes);
-    if (!_.isUndefined(valid)) {
-      return app.notifications.error(valid);
-    } else {
-      return this.collection.add(this.model);
-    }
+    return this.collection.add(this.model);
   };
 
   Form.prototype.done = function(silent) {
@@ -566,7 +624,7 @@ Flint.Form = (function() {
 
   Form.prototype.cancel = function(silent) {
     if (silent == null) silent = false;
-    if (!silent) this.trigger('canceled');
+    if (!(silent && !_.isObject(silent))) this.trigger('canceled', this.model);
     return $(this.el).empty();
   };
 
@@ -593,7 +651,9 @@ Flint.Form = (function() {
 Flint.Helpers = (function() {
 
   function Helpers() {
+    this.js_to_slash = __bind(this.js_to_slash, this);
     this.sql_to_slash = __bind(this.sql_to_slash, this);
+    this.date_format = __bind(this.date_format, this);
     this.delay = __bind(this.delay, this);
     this.initialize = __bind(this.initialize, this);    Handlebars.registerHelper('eq', this.eq);
     Handlebars.registerHelper('check_role', this.check_role);
@@ -612,6 +672,8 @@ Flint.Helpers = (function() {
     Handlebars.registerHelper('month_grid', this.month_grid);
     Handlebars.registerHelper('date_today', this.date_today);
     Handlebars.registerHelper('sql_to_slash', this.sql_to_slash);
+    Handlebars.registerHelper('date_format', this.date_format);
+    Handlebars.registerHelper('twenty_four_to_twelve', this.twenty_four_to_twelve);
     Handlebars.registerHelper('dollar', this.dollar);
     Handlebars.registerHelper('random', this.random);
     Handlebars.registerHelper('sum', this.sum);
@@ -892,12 +954,27 @@ Flint.Helpers = (function() {
     return new Date(sp[0], sp[1] - 1, sp[2]);
   };
 
+  Helpers.prototype.date_format = function(date, format) {
+    if (!date || date === '' || date === '0000-00-00' || date === '0000-00-00 00:00:00') {
+      return 'N/A';
+    }
+    return moment(date).format(format);
+  };
+
   Helpers.prototype.sql_to_slash = function(sql) {
     var d, js, m, y;
     if (!sql || sql === '0000-00-00' || sql === '') return '';
     if (sql.indexOf('/') > 0) return sql;
     js = this.sqldate_to_js(sql);
     if (!js) return '';
+    m = js.getMonth() + 1;
+    d = js.getDate();
+    y = js.getFullYear();
+    return m + '/' + d + '/' + y;
+  };
+
+  Helpers.prototype.js_to_slash = function(js) {
+    var d, m, y;
     m = js.getMonth() + 1;
     d = js.getDate();
     y = js.getFullYear();
@@ -943,7 +1020,7 @@ Flint.Helpers = (function() {
   };
 
   Helpers.prototype.truncate = function(str, length) {
-    if (str.length > length) {
+    if (str && str.length > length) {
       return str.substr(0, length) + '...';
     } else {
       return str;
@@ -966,7 +1043,6 @@ Flint.List = (function() {
     this.close_help = __bind(this.close_help, this);
     this.help = __bind(this.help, this);
     this.sorted = __bind(this.sorted, this);
-    this.render = __bind(this.render, this);
     List.__super__.constructor.apply(this, arguments);
   }
 
@@ -990,10 +1066,15 @@ Flint.List = (function() {
     if (template) this.template = template;
     if (data) this.data = data;
     this.before();
+    if (!this.data) {
+      this.data = {
+        items: this.collection.models
+      };
+    }
     if (this.template) {
       $(this.el).html(tmpl[this.template](this.data));
-    } else {
-      console.log('WARNING Flint.List: @template is undefined.');
+    } else if (console && console.log) {
+      console.log('WARNING Flint.List: @template is undefined, unable to render view.');
     }
     if (this.sortable) {
       config = {
@@ -1039,6 +1120,7 @@ Flint.List = (function() {
 
   List.prototype["delete"] = function(e) {
     var id, model, target;
+    e.stopPropagation();
     target = $(e.target);
     id = target.attr('id');
     while (_.isUndefined(id)) {
@@ -1046,7 +1128,8 @@ Flint.List = (function() {
       id = target.attr('id');
     }
     model = this.collection.get(id);
-    return this.collection.remove(model);
+    this.collection.remove(model);
+    return false;
   };
 
   List.prototype.update = function(model, field, selector) {
@@ -1060,21 +1143,27 @@ Flint.List = (function() {
     this.serialized = [];
     order = 0;
     _.each(this.sortable.find('li'), function(item, index) {
-      var id, last_order;
+      var id, last_order, model;
       id = item.getAttribute('id');
-      last_order = _this.collection.get(id).get('sort_order');
-      _this.collection.get(id).set({
-        sort_order: index,
-        order_before_sort: last_order
-      }, {
-        silent: true
-      });
-      return _this.serialized.push({
-        id: id,
-        sort_order: index
-      });
+      model = _this.collection.get(id);
+      if (model) {
+        last_order = model.get('sort_order');
+        _this.collection.get(id).set('sort_order', index, {
+          silent: true
+        });
+        _this.collection.get(id).set('order_before_sort', last_order, {
+          silent: true
+        });
+        return _this.serialized.push({
+          id: id,
+          sort_order: index
+        });
+      }
     });
     this.collection.sort();
+    this.data = {
+      items: this.collection.models
+    };
     return this.trigger('sort', this.serialized);
   };
 
@@ -1088,7 +1177,7 @@ Flint.List = (function() {
   };
 
   List.prototype.close_help = function() {
-    return this.render(false);
+    return this.render();
   };
 
   return List;
@@ -1178,6 +1267,15 @@ Flint.Notifications = (function() {
     return this.undo = function() {};
   };
 
+  Notifications.prototype.yes_or_no = function(message, save) {
+    $(this.el).attr('class', 'notice').css({
+      top: 0
+    });
+    this.render(message, save, 'Yes', 'No');
+    this.callback = save;
+    return this.undo = function() {};
+  };
+
   Notifications.prototype.dismiss = function(undo) {
     $(this.el).css({
       top: '-100px'
@@ -1198,9 +1296,12 @@ Flint.Sync = (function() {
 
   function Sync() {
     this.ajax = __bind(this.ajax, this);
-    this.backbone = __bind(this.backbone, this);    Backbone.sync = this.backbone;
+    this.backbone = __bind(this.backbone, this);
+    this.changed = __bind(this.changed, this);    Backbone.sync = this.backbone;
     this;
   }
+
+  Sync.prototype.changed = function(model) {};
 
   Sync.prototype.backbone = function(method, model, options) {
     model.url = _.isFunction(model.url) ? model.url() : model.url;

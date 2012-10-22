@@ -89,6 +89,7 @@ class List extends Backbone.View
     
   delete: (e) ->
     # bubble up the target parents until we find an id
+    e.stopPropagation()
     target = $(e.target)
     id = target.attr 'id'
     while _.isUndefined id
@@ -97,6 +98,7 @@ class List extends Backbone.View
        
     model = @collection.get(id)
     @collection.remove(model)
+    false
       
   #
   #  can be overriden to update items instead of re-rendering the entire list

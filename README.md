@@ -13,11 +13,15 @@ STAY TUNED.
 		
 ### Usage:
     
-    flint [options]
+    flint.
+    Usage:
 
-		Options:
-    -w, --watch    Watches and compiles coffee, stylus, templates and dependencies
-    -c, --compile  Compiles coffee, stylus, handlebars, templates and dependencies
-    -f, --file     Path to the flint configuration file                             [default: "./flint.js"]
-    -b, --build    Rebuilds vendor_path/flint.js   
-
+    Options:
+    -n, --new      Creates a new flint application of specified name                                                     
+    -s, --server   Starts the express server on port specified by the configuration                                      
+    -w, --watch    Watches and compiles coffee, stylus, templates, dependencies as well as responders running the server.
+    -q, --quiet    Watch modifier. Watches files but only outputs errors, change and compile messages are silenced         [default: false]
+    -c, --compile  Compiles coffee, stylus, handlebars, templates and dependencies                                       
+    -d, --deploy   Packages and minifies all javascript into a single production target                                  
+    -f, --file     Specify a configuration file to work with.                                                              [default: "./flint.js"]
+    -b, --build    Compiles the core flint libraries as flint.js to the build targets   

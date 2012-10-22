@@ -1,6 +1,5 @@
 // flint command line tool
 
-
 // require the things we need
 optimist = require('optimist');
 path = require('path');
@@ -35,15 +34,17 @@ try {
   // load the configuration and the base dir
   cwd = process.cwd();
   
+  // ... unless we are copying to a new application
   if(!argv.new){
+    
     flint = require(cwd + '/' + argv.file)
     base = path.resolve(path.dirname(argv.file)) + '/'
+  
   }
   
- // compile and watch generally do the same things, but watch will also watch the files  
  if(argv.compile || argv.watch || argv.deploy) {
     
-   // dependencies, dealing with load order kind of sucks right now.
+    // dependencies - alphabetical load order matters, unfortunately.
     depencency = {} 
     depencency.in =  base + flint.config.dependencies
     depencency.out = base + flint.config.compile_dependencies_to
@@ -76,7 +77,7 @@ try {
     plater = require('./plater');
     plater.configure(plates)
 
-   // see if we are interested in the server side of flint and set up burner to do the work.
+    // server side party, set up burner to do the work.
     if( argv.server ){
       
       burn = {}
@@ -133,9 +134,9 @@ try {
   // start the express server on the specified port
   if ( argv.server || argv.run){
     
-    // if we aren't running the live show, get a new brewer instance ready to watch the back end. 
-    if ( !argv.run)
-      burner = require('./brewer')
+    // if we aren't running the live show, get a new brewer instance ready to watch the front end. 
+    if (!argv.run)
+      brewer = require('./brewer')
       
     // set base for the server config
     flint.config.base = base
@@ -160,6 +161,7 @@ try {
     } else {
       
       // generators
+      
       
     }
     
@@ -206,6 +208,7 @@ try {
     
   }
   
+  // if nothing was specified, ofter some guidance
   if(!argv.build && !argv.compile && !argv.watch && !argv.server && !argv.deploy && !argv.new && !argv.generate){
   
     console.log(optimist.help())
@@ -215,8 +218,9 @@ try {
   
   
 } catch (e) { 
-
-  console.log('[flint] command line error:') 
+  
+  // it hit the fan
+  console.log('[flint] cli error:')
   console.log(e)
   console.log('[flint] configuration file: ' + argv.file)
       

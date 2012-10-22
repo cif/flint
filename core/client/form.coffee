@@ -49,34 +49,33 @@ class Form extends Backbone.View
     callback()
   
   after: ->
-  
-  
+    
   # changed() is called from the events property on form inputs.
   # this will broadcast two events, changed and changed:[property] if you want to listen to a specific property's change 
   changed: (e) ->
     # stop propegation and get the target
     e.stopPropagation()  
     input = $ e.target
-    val = input.val()
+    value = input.val()
   
     # handle checkbox values as simple 1 or 0 flags
     if input.attr('type') is 'checkbox'
       if input.is ':checked'
-        val = 1
+        value = input.val()
       else
-        val = 0
+        value = 0
     
     # adding the class .num to input fields ensures that common formatting characters like . , and $ are stripped out
     if input.hasClass 'num'
-      val = val.toString().replace(/[A-Za-z$-,]/g, '')
+      value = value.toString().replace(/[A-Za-z$-,]/g, '')
     
     # as long as we have a definitive value, assign it to the model. 
     # note the use of @valid_changes which determines whether or not it will validate the change realtime
-    if !_.isUndefined val
+    if !_.isUndefined value
       attribute = input.attr('name')
-      @model.set attribute, val.toString(), silent: !@valid_changes
-      @trigger 'changed', @model
-      @trigger 'changed:' + attribute, @model, val
+      @model.set attribute, value.toString(), silent: !@valid_changes
+      @trigger 'changed', @model, attribute, value
+      @trigger 'changed:' + attribute, @model, value
     
   
   # save() is called when a DOM element with class="save" is clicked. it should be used in forms that intend to create
@@ -86,14 +85,14 @@ class Form extends Backbone.View
     @collection.add(@model)
   
   # done() is called when a DOM element with class="done" is clicked. it is used for saving changes made to a model
-  # done() can be called with an optional silent argument which avoids the 'saved' event from firing 
+  # done() can be called with an optional silent argument which preents the 'saved' event from firing 
   done: (silent=false) =>
     @trigger 'saved', @model unless silent and !_.isObject(silent)
     @cancel()
   
   # cancel() is called when a DOM element with class="cancel" is clicked. 
   # this method will unrender the view and trigger a 'canceled' event
-  # cancel() can be called with an option silent argument that will avoid the event from firing.
+  # cancel() can be called with an optional silent argument which will prevent the event from firing.
   cancel: (silent=false) =>
     @trigger 'canceled', @model unless silent and !_.isObject(silent)
     $(@el).empty()

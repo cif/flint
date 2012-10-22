@@ -222,7 +222,7 @@ class Controller extends Backbone.Router
     @app.sync.changed(model) unless not @app.sync
     @trigger 'changed', model
   
-  #  saved() is called from @form.save's event broadcast and pushes the entire model to the server
+  #  saved() is called from @form.done()'s event broadcast and pushes the entire model to the server
   #  as a result Flint.Sync becomes aware of this change. 
   saved: (model) =>
     @trigger 'saved', model
