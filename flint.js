@@ -8,10 +8,13 @@ exports.config = {
   dependencies: 'app/vendor',
   compile_dependencies_to: 'public/javascript/dependencies.js',
   
-  // coffeescript
+  // coffeescript (client)
   coffeescript: 'app/coffee',
   compile_coffee_to: 'public/javascript/application.js',
-  compile_resources_to : 'app/server/resources.js',
+  
+  // coffeescript (server)
+  server_resources: 'app/responders'
+  compile_resources_to : 'service/resources.js',
   
   // stylus
   stylus: 'app/stylus',

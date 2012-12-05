@@ -95,7 +95,7 @@ class List extends Backbone.View
     while _.isUndefined id
       target = target.parent()
       id = target.attr 'id'
-       
+     
     model = @collection.get(id)
     @collection.remove(model)
     false

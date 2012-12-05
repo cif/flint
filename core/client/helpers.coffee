@@ -117,7 +117,7 @@ class Helpers
       attrs.push key + '="' + value + '"'
     ) if attributes
     value = if model and model.get and model.get(field) then model.get(field) else ''
-    new Handlebars.SafeString('<input type="text" name="'+field+'" value="'+value+'" ' + attrs.join(' ') + '/>')
+    new Handlebars.SafeString('<input type="text" name="'+field+'" value="'+value.replace(/"/g,'&quot;')+'" ' + attrs.join(' ') + '/>')
     
   input: (model, field, attributes) ->
     attrs = []
@@ -125,7 +125,7 @@ class Helpers
       attrs.push key + '="' + value + '"'
     ) if attributes
     value = if model and model.get and model.get(field) then model.get(field) else ''
-    new Handlebars.SafeString('<input name="'+field+'" value="'+value+'" ' + attrs.join(' ') + '/>')
+    new Handlebars.SafeString('<input name="'+field+'" value="'+value.replace(/"/g,'&quot;')+'" ' + attrs.join(' ') + '/>')
   
   password: (model, field, attributes) ->
     attrs = []
@@ -140,14 +140,18 @@ class Helpers
     _.map(attributes.hash, (value, key) -> 
       attrs.push key + '="' + value + '"'
     ) if attributes
-
+    
+    # find selected value
     selected = if model and model.get and model.get(field) then model.get(field) else false
+    if model and model[field]
+      selected = model[field]
+      
     opts = []
     _.each(options, (option) -> 
       value = if _.isArray(option) then option[0]  else option
       text = if _.isArray(option) then option[1] else option
       optstr = '<option '
-      if value is selected
+      if value and selected and value.toString() is selected.toString()
         optstr += 'selected '
       optstr += 'value="'+value+'">' + text + '</option>'  
       opts.push(optstr)  

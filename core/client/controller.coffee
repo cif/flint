@@ -39,7 +39,7 @@ class Controller extends Backbone.Router
   valid_changes   : true
   
   # Default messages. If you want to display more verbose messages you can override these.  
-  # Note that handlebars syntax is used by default.
+  # Note that handlebars syntax can be used to display model attributes
   _messages:
     created        : '{{name}} has been created.'
     saved          : 'Changes to {{name}} have been saved.' 
@@ -139,7 +139,7 @@ class Controller extends Backbone.Router
   
     
   # fetch()
-  # is a helper method that will fetch the list from the server 
+  # is a helper method that will fetch the collection from the server if it is not already loaded
   # without having to rewrite this routine each time you want to make sure the collection is there
   fetch: (callback, refresh=false) =>
     if @list.collection.length > 0 and !refresh
@@ -152,6 +152,12 @@ class Controller extends Backbone.Router
              return callback false
           callback @list.collection
   
+  # refresh() simply calls fetch with the argument set to true, 
+  # it will grab the collection from the data store even if it is already loaded
+  refresh: (callback) =>
+    @fetch callback, true
+    
+    
   #  get(id)
   #  is a helper method that returns a specific model from the collection by id. 
   #  it will call fetch if the collection is not populated.
@@ -162,7 +168,7 @@ class Controller extends Backbone.Router
     else
       @__get(id, callback, options)
         
-  __get:(id, callback, options) =>
+  __get: (id, callback, options) =>
     model = @list.collection.get(id)
     if !model
       if callback
@@ -170,24 +176,28 @@ class Controller extends Backbone.Router
     else
       model.fetch
         silent: true
-        success: => 
+        success: (result) =>
           if callback
             callback model
           
   #  grab(id)
-  #  is the synchronous version of get - will return false if the collection is empty, 
-  #  or try to find the object via Collection.get()
+  #  a shortcut to simply call get on the collection assosicated with this controller.
   grab: (id) =>
-    if @list.collection.length is 0
-      model = false
-    else
-      model = @list.collection.get(id)
-    model
+    @list.collection.get(id)
   
-  # refresh() simply calls fetch with refresh argument set to true, it will grab the collection from the data store
-  refresh: (callback) =>
-    @fetch callback, true
-            
+  # fresh(id) ensures we are fetching a fresh copy of the model from the server. 
+  fresh: (id, callback) =>
+    model = @grab id
+    if !model
+      callback false
+      return
+    
+    model.fetch
+       silent: true
+      success: (result) =>
+        if callback
+          callback model
+  
   # create() is the c in your crud. it will render a new model instance into your form 
   # using defaults to populate any values specified.
   create: =>
@@ -243,11 +253,11 @@ class Controller extends Backbone.Router
     if @to_delete
         @destroy()
     
-    # we lost reference to the collection as it was removed by @list or @from so the url needs to be re-assigne
+    # we lost reference to the collection as it was removed by @list or @form so the url needs to be re-assigned
     Deletable = Backbone.Model.extend url: @list.collection.url
     @to_delete = new Deletable model.attributes
     
-    # if notifications are present, we know the undo action will recive the confirmation and @destroy as callback.
+    # if notifications are present, we know the undo action will recive the confirmation and @destroy as callback
     if @app.notifications 
       _tmpl = tmpl_compile(@messages.delete_warn)
       message = _tmpl(model.attributes)
@@ -276,8 +286,8 @@ class Controller extends Backbone.Router
       else
         @trigger 'destroy_error', @to_delete
   
-  # Update is a handy method to overide which gets all the events broadcast by this class that 
-  # by default, it will simply re-render the list view
+  # Update is a handy method to overide which gets all the events broadcast by this class by default 
+  # unless overridden, it will simply re-render the @list view
   update: =>
     @list.render()
     

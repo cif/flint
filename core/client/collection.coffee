@@ -1,19 +1,13 @@
 
-# Collection extends Backbone to keep the client happy, but also becomes an server resource thanks to node.
-#  this is where you specify your own server methods, convenitently named after the backbone model request types.
+# Collection contains a simple sort_order comparison by default. Everything else is Backbone.Collection defaults.
 
 class Collection extends Backbone.Collection
   
   # the default comparison by default a sort_order field.
-  # specify one.  int(1) is cheap. 
+  # specify one.  int(8) is cheap. 
   comparator: (model) ->
     return +model.get('sort_order')
   
-      
-  put: (data) ->
-    
-  
-  post: (data) ->
     
 
 

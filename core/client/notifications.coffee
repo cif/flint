@@ -38,12 +38,12 @@ class Notifications extends Backbone.View
     @callback = save
     @undo = ->
       
-  yes_or_no: (message, save) ->
+  yes_or_no: (message, save, cancel=false) ->
     $(@el).attr('class','notice')
           .css({top:0})
     @render(message, save, 'Yes', 'No')
     @callback = save
-    @undo = ->    
+    @undo = cancel   
   
   dismiss: (undo) =>
     $(@el).css({top:'-100px'})

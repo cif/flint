@@ -70,7 +70,6 @@ responders.Widgets = (function() {
   }
 
   Widgets.prototype.get = function() {
-    console.log('full stack!!!');
     return {
       response: 'object',
       working: 'gresdfat',
