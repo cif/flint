@@ -10,7 +10,7 @@ class List extends Backbone.View
     'click .create' : 'create'
     'click .view' : 'read'
     
-    # bonus help viwe rendering to make your apps even better!
+    # bonus help /instructions view rendering to make your apps even better!
     'click .help' : 'help'
     'click .close' : 'close_help'
   
@@ -57,12 +57,11 @@ class List extends Backbone.View
   #
   #  pre, post render
   #  
-  before: ->
-    
+  before: ->  
   after: ->
   
   #
-  #  crud, cred in this case ;-)
+  #  crud, or "cred" in this case
   #    
   create: ->
     @trigger 'create'
@@ -133,8 +132,10 @@ class List extends Backbone.View
   # renders/closes help text if @help_template is provided
   #   
   help: (help=true) =>
+    @before()
+    @data.help = help
     if @template_help
-      $(@el).html tmpl[@template_help]({help:help}) 
+      $(@el).html tmpl[@template_help](@data) 
   
   close_help: =>
     @render()

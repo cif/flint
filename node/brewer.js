@@ -38,7 +38,7 @@ fs = require('fs');
   // for when folders (non recusrive mode is being used)
   var folderHasChanged = function(event, filename){
       console.log(color.yellow + '[brewer] new or removed file detected, recompiling' + color.reset);
-      readAndCompileFolders()
+      readAndCompileFolders(coffee.in, coffee.watch);
   
   }
   

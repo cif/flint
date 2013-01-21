@@ -1,6 +1,10 @@
 
 // plater pre compiles templates into your templates.js file using your template language of choice.
 
+// increase max file size
+global.maxFilesInFlight = 500
+
+// deps
 optimist = require('optimist')
 uglify = require('uglify-js');
 fs = require('fs');

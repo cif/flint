@@ -56,19 +56,7 @@ class Helpers
       return options.fn(this)
     else
       return options.inverse(this)
-  
-  check_role: (user_or_role, required_roles, options) ->
-    role = if user_or_role.get then user_or_role.get('role') else user_or_role
-    has_role = required_roles.indexOf(role) >= 0
-    if has_role
-      if options
-        return options.fn(this)
-      else
-        return true
-    else
-      if options
-        return options.inverse(this)
-    false
+      
   
   # form helpers
   link: (href, text, attributes) ->
@@ -110,7 +98,9 @@ class Helpers
     out = if out.length > 0 then out.join('') else zero_length_message
     new Handlebars.SafeString(out) 
   
+  
   # ___________ form field helpers ___________
+  
   text_field: (model, field, attributes) ->
     attrs = []
     _.map(attributes.hash, (value, key) -> 
@@ -207,9 +197,30 @@ class Helpers
   
   # ___________ cookie function ___________
   
- 
+  cookie: (name, value, expires='', path='/', domain='') =>
+    if _.isUndefined(value)
+      return @_get_cookie(name)
+    
+    cookie = name + '=' + value
+    expires = '; expires=' + new Date(expires).toGMTString() if expires is not ''
+    if expires is ''
+      year = new Date().getTime() + (60*60*24*365*1000)
+      expires = '; expires=' + new Date(year).toGMTString()
+    path = '; path=' + path
+    domain = '; domain' + domain if domain is not ''
+    document.cookie = cookie + expires + path + domain
+    value
+    
+  _get_cookie: (name) =>
+    locate = name + '='
+    cookies = document.cookie.split(';')
+    value = false
+    for cookie in cookies
+      if cookie.toString().indexOf(locate) >= 0
+        #console.log(cookie)
+        value = cookie.substring( locate.length + 1, cookie.length)
+    value
 	  
-
     
     
   # ___________ date helpers ___________
