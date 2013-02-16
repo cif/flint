@@ -1,6 +1,8 @@
 
-# list view supports basic things like sorting, edit, delete and view
-class List extends Backbone.View
+# Flint.List - generic list view implementation
+#
+#   * handles common CRUD related events and triggers them (create,read,update,delete)
+#
   
   _events:
     
@@ -133,6 +135,8 @@ class List extends Backbone.View
   #   
   help: (help=true) =>
     @before()
+    if !@data
+      @data = {}
     @data.help = help
     if @template_help
       $(@el).html tmpl[@template_help](@data) 

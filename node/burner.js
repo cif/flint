@@ -1,6 +1,6 @@
 
 // burner currently replicates WAY too much of brewer's functionality.  
-// unfortunately, the responders that are compiled needs flint.js to be part of the same file due to coffeescript protoyping.
+// unfortunately, the responders and models being compiled need flint.js to be part of the same file due to coffeescript protoyping.
 
 coffeescript = require('coffee-script');
 fs = require('fs');
@@ -118,6 +118,7 @@ fs = require('fs');
           // flint gets uppercased because it is special
           if(spaced == '' || coffee.build)
             spaced = 'Flint'
+          
             
           // in case you left a file empty... oops!  
           // leaving a file empty will also reverse the entire order of recursive compilation ... no bueno.
@@ -364,6 +365,7 @@ exports.watch = function(){
   
     console.log(color.yellow + '[burner] watching '+ coffee.in.length + ' coffee folder(s) ' + color.reset)
     readAndCompileFolders(coffee.in, true);
+    
   }
   
 }

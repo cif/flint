@@ -41,6 +41,8 @@ class Form extends Backbone.View
       $(@el).html tmpl[@template](@data)
       # call after()
       @after()
+    
+    #return the view  
     this
   
   # before() and after() are called in respect to DOM insertion carried out by render().
@@ -71,7 +73,7 @@ class Form extends Backbone.View
     
     # as long as we have a definitive value, assign it to the model. 
     # note the use of @valid_changes which determines whether or not it will validate the change realtime
-    if !_.isUndefined value
+    if !_.isUndefined value and !_.isUndefined @model
       attribute = input.attr('name')
       @model.set attribute, value.toString(), silent: !@valid_changes
       @trigger 'changed', @model, attribute, value

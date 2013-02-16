@@ -5,10 +5,6 @@ class Sync
   constructor: ->
     Backbone.sync = @backbone
     this
-  
-  # gets change events from models as they happen.
-  changed: (model) =>
-    
         
   # this method overrides backbone.sync
   backbone: (method, model, options) =>  
@@ -31,7 +27,8 @@ class Sync
     # sync the object up to the server if the application is online
     if model.url or options.url and app.isOnline 
       @server(method, model, options)
-     
+    else
+      @local(method, model options)
   
   
   # pushes objects to local store
@@ -80,18 +77,22 @@ class Sync
     $.ajax(_.extend(params, options))
     this
   
-   
+  
+  # recieves change events from socket server
+  changed: (model) =>
+    
+  
   ajax: (url, params) =>
     
     # todo - this should serve as both cache and update in the future for local use.
-    # hijack the success return object for storage -
+    # hijack the success method object for storage -
     
     params.url = url
     $.ajax(_.extend(params))
     this
     
   
-  # todo - methods used to interface with the local store
+  # TODO - implement methods used to interface with the local store
   
     
   

@@ -134,13 +134,15 @@ try {
   // start the express server on the specified port
   if ( argv.server || argv.run){
     
+    
+    
     // if we aren't running the live show, get a new brewer instance ready to watch the front end. 
     if (!argv.run)
       brewer = require('./brewer')
       
     // set base for the server config
     flint.config.base = base
-          
+    
     // fire up the server
     server = require('./server')
     server.configure(flint.config)

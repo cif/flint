@@ -1,25 +1,8 @@
-adapters = {}
-var Flint = {}
+Flint = {}
 
 __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
 __hasProp = {}.hasOwnProperty,
 __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-Flint.Mongo = (function() {
-
-  function Mongo() {}
-
-  return Mongo;
-
-})();
-
-Flint.MySql = (function() {
-
-  function MySql() {}
-
-  return MySql;
-
-})();
 
 Flint.Model = (function() {
 
@@ -42,6 +25,22 @@ Flint.Model = (function() {
 
 })();
 
+Flint.Mongo = (function() {
+
+  function Mongo() {}
+
+  return Mongo;
+
+})();
+
+Flint.MySql = (function() {
+
+  function MySql() {}
+
+  return MySql;
+
+})();
+
 Flint.Responder = (function() {
 
   function Responder(adapter) {}
@@ -50,31 +49,42 @@ Flint.Responder = (function() {
 
 })();
 
-exports.adapters = adapters
 exports.Flint = Flint
 
 models = {}
-responders = {}
+controllers = {}
 
 __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
 __hasProp = {}.hasOwnProperty,
 __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-responders.Widgets = (function() {
+controllers.Widgets = (function() {
 
   __extends(Widgets, Flint.Responder);
 
   function Widgets() {
+    this.some_other_method = __bind(this.some_other_method, this);
     this.get = __bind(this.get, this);
     Widgets.__super__.constructor.apply(this, arguments);
   }
 
-  Widgets.prototype.get = function() {
-    return {
-      response: 'object',
-      working: 'gresdfat',
-      bummer: 'BANGER!'
+  Widgets.prototype.get = function(data, credentials) {
+    var response;
+    response = {
+      test: 'fuck yeah',
+      word: 'bird'
     };
+    return response;
+  };
+
+  Widgets.prototype.some_other_method = function(data, credentials) {
+    var response;
+    response = {
+      test: 'fuck yeah RIGHT!',
+      word: 'bird.........',
+      rad: 'holy shit ben!'
+    };
+    return response;
   };
 
   return Widgets;
@@ -82,4 +92,4 @@ responders.Widgets = (function() {
 })();
 
 exports.models = models
-exports.responders = responders
+exports.controllers = controllers
