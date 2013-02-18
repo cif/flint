@@ -3,7 +3,9 @@
 #
 #   * handles common CRUD related events and triggers them (create,read,update,delete)
 #
-  
+
+class Grid extends Backbone.View
+    
   _events:
     
     # common UI events

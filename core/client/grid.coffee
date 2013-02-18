@@ -5,7 +5,6 @@
 #
 #   * Implements a quicksort routine for tables fired by th.sortable DOM elements
 
-
 class Grid extends Backbone.View
   
   _events:

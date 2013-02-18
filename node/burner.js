@@ -40,7 +40,7 @@ fs = require('fs');
   var folderHasChanged = function(event, filename){
       if(!coffee.silent)
         console.log(color.yellow + '[burner] new or removed file detected, recompiling' + color.reset);
-      readAndCompileFolders()
+      readAndCompileFolders(coffee.in, coffee.watch);
   
   }
   

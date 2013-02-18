@@ -245,10 +245,6 @@ Flint.Collection = (function() {
     return +model.get('sort_order');
   };
 
-  Collection.prototype.put = function(data) {};
-
-  Collection.prototype.post = function(data) {};
-
   return Collection;
 
 })();
@@ -272,10 +268,11 @@ Flint.Controller = (function() {
     this.edit = __bind(this.edit, this);
     this.added = __bind(this.added, this);
     this.create = __bind(this.create, this);
-    this.refresh = __bind(this.refresh, this);
+    this.fresh = __bind(this.fresh, this);
     this.grab = __bind(this.grab, this);
     this.__get = __bind(this.__get, this);
     this.get = __bind(this.get, this);
+    this.refresh = __bind(this.refresh, this);
     this.fetch = __bind(this.fetch, this);
     this._unbind = __bind(this._unbind, this);
     this.unbind = __bind(this.unbind, this);
@@ -404,6 +401,10 @@ Flint.Controller = (function() {
     }
   };
 
+  Controller.prototype.refresh = function(callback) {
+    return this.fetch(callback, true);
+  };
+
   Controller.prototype.get = function(id, callback, options) {
     var _this = this;
     if (options == null) options = {};
@@ -425,7 +426,7 @@ Flint.Controller = (function() {
     } else {
       return model.fetch({
         silent: true,
-        success: function() {
+        success: function(result) {
           if (callback) return callback(model);
         }
       });
@@ -433,17 +434,25 @@ Flint.Controller = (function() {
   };
 
   Controller.prototype.grab = function(id) {
-    var model;
-    if (this.list.collection.length === 0) {
-      model = false;
-    } else {
-      model = this.list.collection.get(id);
-    }
-    return model;
+    return this.list.collection.get(id);
   };
 
-  Controller.prototype.refresh = function(callback) {
-    return this.fetch(callback, true);
+  Controller.prototype.fresh = function(id, callback) {
+    var model;
+    var _this = this;
+    model = this.grab(id);
+    if (!model) {
+      callback(false);
+      return;
+    }
+    model.fetch({
+      silent: true
+    });
+    return {
+      success: function(result) {
+        if (callback) return callback(model);
+      }
+    };
   };
 
   Controller.prototype.create = function() {
@@ -668,7 +677,7 @@ Flint.Form = (function() {
     value = input.val();
     if (input.attr('type') === 'checkbox') {
       if (input.is(':checked')) {
-        value = 1;
+        value = input.val();
       } else {
         value = 0;
       }
@@ -676,9 +685,9 @@ Flint.Form = (function() {
     if (input.hasClass('num')) {
       value = value.toString().replace(/[A-Za-z$-,]/g, '');
     }
-    if (!_.isUndefined(value)) {
+    if (!_.isUndefined(value && !_.isUndefined(this.model))) {
       attribute = input.attr('name');
-      this.model.set(attribute, val.toString(), {
+      this.model.set(attribute, value.toString(), {
         silent: !this.valid_changes
       });
       this.trigger('changed', this.model, attribute, value);
@@ -722,12 +731,210 @@ Flint.Form = (function() {
 
 })();
 
+Flint.Grid = (function() {
+
+  __extends(Grid, Backbone.View);
+
+  function Grid() {
+    this.quicksort = __bind(this.quicksort, this);
+    this.swap = __bind(this.swap, this);
+    this.compare = __bind(this.compare, this);
+    this.partition = __bind(this.partition, this);
+    this.sort = __bind(this.sort, this);
+    Grid.__super__.constructor.apply(this, arguments);
+  }
+
+  Grid.prototype._events = {
+    'click tr td,.edit': 'edit',
+    'click th.sortable': 'sort',
+    'click .delete': 'delete',
+    'click .create': 'create',
+    'click .view': 'read'
+  };
+
+  Grid.prototype.initialize = function(options) {
+    this.events = _.extend({}, this._events, this.events);
+    return this;
+  };
+
+  Grid.prototype.render = function(template, data, headings) {
+    if (template) this.template = template;
+    if (headings) this.headings = headings;
+    if (data) this.data = data;
+    this.before();
+    if (!this.data) {
+      this.data = {
+        items: this.collection.models
+      };
+    }
+    this.data.headings = this.headings;
+    if (this.template) {
+      $(this.el).html(tmpl[this.template](this.data));
+    } else if (console && console.log) {
+      console.log('WARNING Flint.Grid: @template is undefined, unable to render view.');
+    }
+    this.trigger('rendered', this);
+    this.after();
+    return this;
+  };
+
+  Grid.prototype.before = function() {};
+
+  Grid.prototype.after = function() {};
+
+  Grid.prototype.create = function() {
+    return this.trigger('create');
+  };
+
+  Grid.prototype.read = function(e) {
+    var id, target;
+    target = $(e.target);
+    id = target.attr('id');
+    while (_.isUndefined(id)) {
+      target = target.parent();
+      id = target.attr('id');
+    }
+    return this.trigger('read', id);
+  };
+
+  Grid.prototype.edit = function(e) {
+    var id, target;
+    target = $(e.target);
+    id = target.attr('id');
+    while (_.isUndefined(id)) {
+      target = target.parent();
+      id = target.attr('id');
+    }
+    return this.trigger('edit', id);
+  };
+
+  Grid.prototype["delete"] = function(e) {
+    var id, model, target;
+    e.stopPropagation();
+    target = $(e.target);
+    id = target.attr('id');
+    while (_.isUndefined(id)) {
+      target = target.parent();
+      id = target.attr('id');
+    }
+    model = this.collection.get(id);
+    this.collection.remove(model);
+    return false;
+  };
+
+  Grid.prototype.sort = function(e) {
+    var arrow, heading, index, items, table_root, tr, trs, _i, _j, _len, _len2, _results;
+    table_root = e.target;
+    while (table_root.tagName !== 'TABLE') {
+      table_root = table_root.parentNode;
+    }
+    index = $('tr th').index(e.target);
+    heading = e.target;
+    this.sort_data_type = $(e.target).attr('data-type');
+    if (!this.sorting_dir) this.sorting_dir = 1;
+    if (heading === this.heading) this.sorting_dir *= -1;
+    this.heading = e.target;
+    $('tr th').css('font-weight', '300');
+    $('tr th span').remove();
+    arrow = this.sorting_dir === -1 ? '<span>&uarr;&nbsp;</span>' : '<span>&darr;&nbsp;</span>';
+    $(e.target).css('font-weight', 'bold');
+    $(e.target).html(arrow + $(e.target).html());
+    this.sort_index = index;
+    trs = table_root.getElementsByTagName('tr');
+    items = [];
+    tr = 1;
+    while (tr < trs.length) {
+      items.push(trs[tr]);
+      tr++;
+    }
+    for (_i = 0, _len = items.length; _i < _len; _i++) {
+      tr = items[_i];
+      $(tr).remove();
+    }
+    this.quicksort(items, 0, items.length);
+    _results = [];
+    for (_j = 0, _len2 = items.length; _j < _len2; _j++) {
+      tr = items[_j];
+      _results.push($(table_root).append(tr));
+    }
+    return _results;
+  };
+
+  Grid.prototype.partition = function(items, begin, end, pivot) {
+    var i, pivot_val, store, _ref;
+    pivot_val = items[pivot];
+    this.swap(items, pivot, end - 1);
+    store = begin;
+    for (i = begin, _ref = end - 1; begin <= _ref ? i < _ref : i > _ref; begin <= _ref ? i++ : i--) {
+      if (this.compare(items[i], pivot_val)) {
+        this.swap(items, store, i);
+        store++;
+      }
+    }
+    this.swap(items, end - 1, store);
+    return store;
+  };
+
+  Grid.prototype.compare = function(a, b, type) {
+    if (type == null) type = false;
+    a = $(a.getElementsByTagName('td')[this.sort_index]).html();
+    b = $(b.getElementsByTagName('td')[this.sort_index]).html();
+    if (this.sort_data_type) {
+      if (this.sort_data_type === 'date') {
+        if (a.indexOf('-') > 0) a = a.substring(0, a.indexOf(' -'));
+        if (b.indexOf('-') > 0) b = b.substring(0, b.indexOf(' -'));
+        a = moment(a);
+        b = moment(b);
+        if (isNaN(a.toDate().getTime())) {
+          a = moment(0);
+          console.log(a);
+        }
+        if (isNaN(b.toDate().getTime())) b = moment(0);
+      }
+      if (this.sort_data_type === 'number') {
+        a = parseFloat(a.replace(/[A-Za-z$,]/g, ''));
+        b = parseFloat(b.replace(/[A-Za-z$,]/g, ''));
+        if (isNaN(a)) a = 0;
+        if (isNaN(b)) b = 0;
+      }
+    }
+    if (this.sorting_dir === 1) {
+      return a < b;
+    } else {
+      return a > b;
+    }
+  };
+
+  Grid.prototype.swap = function(array, a, b) {
+    var tmp;
+    tmp = array[a];
+    array[a] = array[b];
+    array[b] = tmp;
+    return array;
+  };
+
+  Grid.prototype.quicksort = function(items, begin, end) {
+    var pivot;
+    if ((end - 1) > begin) {
+      pivot = begin + Math.floor(Math.random() * (end - begin));
+      pivot = this.partition(items, begin, end, pivot);
+      this.quicksort(items, begin, pivot);
+      return this.quicksort(items, pivot + 1, end);
+    }
+  };
+
+  return Grid;
+
+})();
+
 Flint.Helpers = (function() {
 
   function Helpers() {
     this.js_to_slash = __bind(this.js_to_slash, this);
     this.sql_to_slash = __bind(this.sql_to_slash, this);
     this.date_format = __bind(this.date_format, this);
+    this._get_cookie = __bind(this._get_cookie, this);
+    this.cookie = __bind(this.cookie, this);
     this.delay = __bind(this.delay, this);
     this.initialize = __bind(this.initialize, this);    Handlebars.registerHelper('eq', this.eq);
     Handlebars.registerHelper('check_role', this.check_role);
@@ -778,22 +985,6 @@ Flint.Helpers = (function() {
     } else {
       return options.inverse(this);
     }
-  };
-
-  Helpers.prototype.check_role = function(user_or_role, required_roles, options) {
-    var has_role, role;
-    role = user_or_role.get ? user_or_role.get('role') : user_or_role;
-    has_role = required_roles.indexOf(role) >= 0;
-    if (has_role) {
-      if (options) {
-        return options.fn(this);
-      } else {
-        return true;
-      }
-    } else {
-      if (options) return options.inverse(this);
-    }
-    return false;
   };
 
   Helpers.prototype.link = function(href, text, attributes) {
@@ -851,7 +1042,7 @@ Flint.Helpers = (function() {
       });
     }
     value = model && model.get && model.get(field) ? model.get(field) : '';
-    return new Handlebars.SafeString('<input type="text" name="' + field + '" value="' + value + '" ' + attrs.join(' ') + '/>');
+    return new Handlebars.SafeString('<input type="text" name="' + field + '" value="' + value.replace(/"/g, '&quot;') + '" ' + attrs.join(' ') + '/>');
   };
 
   Helpers.prototype.input = function(model, field, attributes) {
@@ -863,7 +1054,7 @@ Flint.Helpers = (function() {
       });
     }
     value = model && model.get && model.get(field) ? model.get(field) : '';
-    return new Handlebars.SafeString('<input name="' + field + '" value="' + value + '" ' + attrs.join(' ') + '/>');
+    return new Handlebars.SafeString('<input name="' + field + '" value="' + value.replace(/"/g, '&quot;') + '" ' + attrs.join(' ') + '/>');
   };
 
   Helpers.prototype.password = function(model, field, attributes) {
@@ -887,13 +1078,16 @@ Flint.Helpers = (function() {
       });
     }
     selected = model && model.get && model.get(field) ? model.get(field) : false;
+    if (model && model[field]) selected = model[field];
     opts = [];
     _.each(options, function(option) {
       var optstr, text, value;
       value = _.isArray(option) ? option[0] : option;
       text = _.isArray(option) ? option[1] : option;
       optstr = '<option ';
-      if (value === selected) optstr += 'selected ';
+      if (value && selected && value.toString() === selected.toString()) {
+        optstr += 'selected ';
+      }
       optstr += 'value="' + value + '">' + text + '</option>';
       return opts.push(optstr);
     });
@@ -957,6 +1151,38 @@ Flint.Helpers = (function() {
     }
     value = model && model.get ? model.get(field) : '';
     return new Handlebars.SafeString('<textarea name="' + field + '" ' + attrs.join(' ') + '>' + value + '</textarea>');
+  };
+
+  Helpers.prototype.cookie = function(name, value, expires, path, domain) {
+    var cookie, year;
+    if (expires == null) expires = '';
+    if (path == null) path = '/';
+    if (domain == null) domain = '';
+    if (_.isUndefined(value)) return this._get_cookie(name);
+    cookie = name + '=' + value;
+    if (expires === !'') expires = '; expires=' + new Date(expires).toGMTString();
+    if (expires === '') {
+      year = new Date().getTime() + (60 * 60 * 24 * 365 * 1000);
+      expires = '; expires=' + new Date(year).toGMTString();
+    }
+    path = '; path=' + path;
+    if (domain === !'') domain = '; domain' + domain;
+    document.cookie = cookie + expires + path + domain;
+    return value;
+  };
+
+  Helpers.prototype._get_cookie = function(name) {
+    var cookie, cookies, locate, value, _i, _len;
+    locate = name + '=';
+    cookies = document.cookie.split(';');
+    value = false;
+    for (_i = 0, _len = cookies.length; _i < _len; _i++) {
+      cookie = cookies[_i];
+      if (cookie.toString().indexOf(locate) >= 0) {
+        value = cookie.substring(locate.length + 1, cookie.length);
+      }
+    }
+    return value;
   };
 
   Helpers.prototype.month_grid = function(month, year) {
@@ -1109,18 +1335,18 @@ Flint.Helpers = (function() {
 
 })();
 
-Flint.List = (function() {
+Flint.Grid = (function() {
 
-  __extends(List, Backbone.View);
+  __extends(Grid, Backbone.View);
 
-  function List() {
+  function Grid() {
     this.close_help = __bind(this.close_help, this);
     this.help = __bind(this.help, this);
     this.sorted = __bind(this.sorted, this);
-    List.__super__.constructor.apply(this, arguments);
+    Grid.__super__.constructor.apply(this, arguments);
   }
 
-  List.prototype._events = {
+  Grid.prototype._events = {
     'click .edit': 'edit',
     'click .delete': 'delete',
     'click .create': 'create',
@@ -1129,13 +1355,13 @@ Flint.List = (function() {
     'click .close': 'close_help'
   };
 
-  List.prototype.initialize = function(options, sortable) {
+  Grid.prototype.initialize = function(options, sortable) {
     this.sortable = sortable;
     this.events = _.extend({}, this._events, this.events);
     return this;
   };
 
-  List.prototype.render = function(template, data) {
+  Grid.prototype.render = function(template, data) {
     var config;
     if (template) this.template = template;
     if (data) this.data = data;
@@ -1162,15 +1388,15 @@ Flint.List = (function() {
     return this;
   };
 
-  List.prototype.before = function() {};
+  Grid.prototype.before = function() {};
 
-  List.prototype.after = function() {};
+  Grid.prototype.after = function() {};
 
-  List.prototype.create = function() {
+  Grid.prototype.create = function() {
     return this.trigger('create');
   };
 
-  List.prototype.read = function(e) {
+  Grid.prototype.read = function(e) {
     var id, target;
     target = $(e.target);
     id = target.attr('id');
@@ -1181,7 +1407,7 @@ Flint.List = (function() {
     return this.trigger('read', id);
   };
 
-  List.prototype.edit = function(e) {
+  Grid.prototype.edit = function(e) {
     var id, target;
     target = $(e.target);
     id = target.attr('id');
@@ -1192,7 +1418,7 @@ Flint.List = (function() {
     return this.trigger('edit', id);
   };
 
-  List.prototype["delete"] = function(e) {
+  Grid.prototype["delete"] = function(e) {
     var id, model, target;
     e.stopPropagation();
     target = $(e.target);
@@ -1206,12 +1432,12 @@ Flint.List = (function() {
     return false;
   };
 
-  List.prototype.update = function(model, field, selector) {
+  Grid.prototype.update = function(model, field, selector) {
     if (selector == null) selector = 'span';
     return $('#' + model.get('id') + ' ' + selector).html(model.get(field));
   };
 
-  List.prototype.sorted = function() {
+  Grid.prototype.sorted = function() {
     var order;
     var _this = this;
     this.serialized = [];
@@ -1241,20 +1467,21 @@ Flint.List = (function() {
     return this.trigger('sort', this.serialized);
   };
 
-  List.prototype.help = function(help) {
+  Grid.prototype.help = function(help) {
     if (help == null) help = true;
+    this.before();
+    if (!this.data) this.data = {};
+    this.data.help = help;
     if (this.template_help) {
-      return $(this.el).html(tmpl[this.template_help]({
-        help: help
-      }));
+      return $(this.el).html(tmpl[this.template_help](this.data));
     }
   };
 
-  List.prototype.close_help = function() {
+  Grid.prototype.close_help = function() {
     return this.render();
   };
 
-  return List;
+  return Grid;
 
 })();
 
@@ -1341,13 +1568,33 @@ Flint.Notifications = (function() {
     return this.undo = function() {};
   };
 
-  Notifications.prototype.yes_or_no = function(message, save) {
+  Notifications.prototype.warning = function(message, save) {
+    $(this.el).attr('class', 'error').css({
+      top: 0
+    });
+    this.render(message, save, 'OK', 'Cancel');
+    this.callback = save;
+    return this.undo = function() {};
+  };
+
+  Notifications.prototype.yes_or_no = function(message, save, cancel) {
+    if (cancel == null) cancel = false;
     $(this.el).attr('class', 'notice').css({
       top: 0
     });
     this.render(message, save, 'Yes', 'No');
     this.callback = save;
-    return this.undo = function() {};
+    return this.undo = cancel;
+  };
+
+  Notifications.prototype.warn_and_resolve = function(message, save, cancel) {
+    if (cancel == null) cancel = false;
+    $(this.el).attr('class', 'error').css({
+      top: 0
+    });
+    this.render(message, save, 'Yes', 'No');
+    this.callback = save;
+    return this.undo = cancel;
   };
 
   Notifications.prototype.dismiss = function(undo) {
@@ -1370,12 +1617,10 @@ Flint.Sync = (function() {
 
   function Sync() {
     this.ajax = __bind(this.ajax, this);
-    this.backbone = __bind(this.backbone, this);
-    this.changed = __bind(this.changed, this);    Backbone.sync = this.backbone;
+    this.changed = __bind(this.changed, this);
+    this.backbone = __bind(this.backbone, this);    Backbone.sync = this.backbone;
     this;
   }
-
-  Sync.prototype.changed = function(model) {};
 
   Sync.prototype.backbone = function(method, model, options) {
     model.url = _.isFunction(model.url) ? model.url() : model.url;
@@ -1386,6 +1631,8 @@ Flint.Sync = (function() {
     }
     if (model.url || options.url && app.isOnline) {
       return this.server(method, model, options);
+    } else {
+      return this.local(method, model(options));
     }
   };
 
@@ -1434,6 +1681,8 @@ Flint.Sync = (function() {
     $.ajax(_.extend(params, options));
     return this;
   };
+
+  Sync.prototype.changed = function(model) {};
 
   Sync.prototype.ajax = function(url, params) {
     params.url = url;

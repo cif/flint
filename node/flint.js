@@ -12,7 +12,7 @@ argv = optimist
   .alias('s','server')
   .describe('s','Starts the express server on port specified by the configuration')
   .alias('w','watch')
-  .describe('w','Watches and compiles coffee, stylus, templates, dependencies as well as responders running the server.')
+  .describe('w','Watches and compiles coffee, stylus, templates, dependencies and responders which interface with the server.')
   .alias('q','quiet')
   .describe('q','Watch modifier. Watches files but only outputs errors, change and compile messages are silenced')
   .default('q', false)
@@ -51,7 +51,7 @@ try {
     depend = require('./dependency');
     depend.on(depencency)
 
-   // coffee destinations and template engine
+    // coffee destinations and template engine
     maker = {}
     maker.in = flint.config.coffeescript
     maker.out = base + flint.config.compile_coffee_to
@@ -60,7 +60,7 @@ try {
     brewer = require('./brewer');
     brewer.configure(maker)
 
-   // stylus
+    // stylus
     artist = {}
     artist.in =  base + flint.config.stylus
     artist.out = base + flint.config.compile_stylus_to
@@ -68,7 +68,7 @@ try {
     styler = require('./styler');
     styler.configure(artist)
 
-   // templates 
+    // templates 
     plates = {}
     plates.in =  base + flint.config.templates
     plates.out = base + flint.config.compile_templates_to
@@ -178,7 +178,7 @@ try {
         
         client_dest = flint.config.client_build_target ? base + flint.config.client_build_target : './app/vendor/flint.js'
         server_dest = flint.config.server_build_target ? base + flint.config.server_build_target : './service/flint.js'
-      
+        
       } else {
         
         client_dest = './app/vendor/flint.js'

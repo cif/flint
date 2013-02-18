@@ -30,22 +30,26 @@ fs = require('fs');
   //watches a file for changes
   var fileHasChanged = function(event, filename){
       
-      console.log(color.yellow + '[brewer] change detected to file, recompiling' + color.reset);
+      if(!coffee.silent)
+        console.log(color.yellow + '[brewer] change detected to file, recompiling' + color.reset);
       compileTemplates();
   
   };
   
   // for when folders (non recusrive mode is being used)
   var folderHasChanged = function(event, filename){
-      console.log(color.yellow + '[brewer] new or removed file detected, recompiling' + color.reset);
+      
+      if(!coffee.silent)
+        console.log(color.yellow + '[brewer] new or removed file detected, recompiling' + color.reset);
       readAndCompileFolders(coffee.in, coffee.watch);
   
   }
   
   // watches a directory for changes  
   var directoryHasChanged = function(event, filename){
-     
-      console.log(color.yellow + '[brewer] new or removed file detected, recompiling' + color.reset);
+      
+      if(!coffee.silent)
+        console.log(color.yellow + '[brewer] new or removed file detected, recompiling' + color.reset);
       readAndCompile(coffee.in, coffee.watch);
         
   };
@@ -146,8 +150,8 @@ fs = require('fs');
     try {
       
       fs.writeFileSync(coffee.out, output, 'utf8');
-      
-      console.log(color.green + '[brewer] compiled coffeescript sources to ' + coffee.out + color.reset);
+      if(!coffee.silent)
+        console.log(color.green + '[brewer] compiled coffeescript sources to ' + coffee.out + color.reset);
       
     } catch(e){
     

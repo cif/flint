@@ -2,7 +2,7 @@
   "author"         : "Ben Ipsen <email@benipsen.com>",
   "name"           : "flint",
   "description"    : "Full Stack Coffeescript Development",
-  "version"        : "0.0.83",
+  "version"        : "0.0.84",
 
   "repository"     : {
     "type"           : "git",
@@ -29,5 +29,6 @@
     "uglify-js"   : "1.1.1",
     "optimist"    : ">= 0.3.4",
     "express"  : ">= 3.0"
+		"mysql"  : ">= 1.0"
   }
 }

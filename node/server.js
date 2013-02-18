@@ -23,7 +23,6 @@ path = require('path');
       res.sendfile(path.resolve('./public/fonts/' + req.params.file))
     })
     
-    
     app.get('/public/:file?', function(req, res){
       res.sendfile(path.resolve('./public/' + req.params.file))
     })
@@ -34,7 +33,6 @@ path = require('path');
     
     // serve our public index
     app.get('/', function(req, res){ 
-      console.log(config.debug)
       file = config.debug ? './public/index_develop.html' : './public/index.html';
       res.sendfile(path.resolve(file))
     })
@@ -45,30 +43,35 @@ path = require('path');
         uri_parts = req.url.split('/')
         uri_parts.shift()
         inflector = require('./inflector')
-        responders = require('../service/responders')        
-        response = respondToAppRequest(req, uri_parts)
+        responders = require('../service/responders')       
         
-        if(response.success){
-        
-          res.set('Content-Type','text/json')
-          res.send(response.data)
-          res.send(200)
-        
-        } else {
+        // asyncronous responder 
+        respondToAppRequest(req, uri_parts, function(response, error){
           
-          // return an error
-          res.set('Content-Type','text/plain')
-          res.send('Flint.js server error:' + "\n" + response.error)
-          res.send(500)
-          
-        }
+          if(!error){
         
-    })
+            // return json back to our application
+            res.set('Content-Type','text/json')
+            res.send(response)
+            //res.send(200)
+        
+          } else {
+          
+            // return an error
+            res.set('Content-Type','text/plain')
+            res.send('Flint.js server error:' + "\n" + error)
+            //res.send(500)
+          
+          }
+        
+        });
+        
+    });
     
     
   }
   
-  var respondToAppRequest = function(req, uri_parts){
+  var respondToAppRequest = function(req, uri_parts, callback){
     
     // get controller class and the method to call
     controller = uri_parts[0].camelize()
@@ -81,32 +84,37 @@ path = require('path');
     // make sure everything exists
     if(responders.controllers[controller]){
       
-      Controller = new responders.controllers[controller];
+      // instantantiate the controller
+      Controller = new responders.controllers[controller](config);
+      
+      // todo, provide request data and credentials to the method - pass credentials through security.
+      data = {}
+      credentials = {}
+        
+      Controller.before(data, credentials)
       if(Controller[method_to_call]){
         
-        // verify permissions
+        // call the controller method
+        Controller[method_to_call](data, credentials, function(response, error){
+          
+          //wrap up the controler
+          Controller.after(data, credentials)
+          //Controller.finish()
+          
+          // callback to deliver the response
+          callback(response, error);
         
-        
-        return {
-          data: Controller[method_to_call].call(),
-          success: true 
-        }
+        });
         
       } else {
         
-        return {
-          success: false,
-          error: 'Missing  method ' + method_to_call + ' on responder class ' + controller
-        }
+        callback(null, 'Missing  method ' + method_to_call + ' on responder class ' + controller);
         
       }
       
     } else {
       
-      return {
-        success: false,
-        error: 'Missing responder class ' + controller
-      }
+      callback(null, 'Missing responder class ' + controller);
       
     }
       
@@ -136,7 +144,9 @@ path = require('path');
     config.debug = debug
     app.listen(port)
     setupRoutes()
-    console.log('Server ready on port ' + port)
+    
+    // let everyone know the server is ready
+    console.log('Server listening on port ' + port)
 
   }
 

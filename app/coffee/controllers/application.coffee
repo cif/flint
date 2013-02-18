@@ -19,11 +19,11 @@ class Application extends Backbone.Router
     # initialize helpers
     @helpers        = new views.Helpers
    
-    # YOUR APP CONTROLLERS HERE.
-    # be sure to pass @ so that Flint.Controllers can register themselves for binding/unbinding switches
+    # PLACE YOUR APP CONTROLLERS HERE.
+    # be sure to pass @ so that Flint.Controllers can register themselves for binding/unbinding when switching
     @controllers  = []
-       
-    # return the app 
+    
+    # return the app
     this
   
                    

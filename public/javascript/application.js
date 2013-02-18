@@ -43,6 +43,32 @@ controllers.Application = (function() {
 
 })();
 
+models.Widget = (function() {
+
+  __extends(Widget, Flint.Model);
+
+  function Widget() {
+    this.methods = __bind(this.methods, this);
+    Widget.__super__.constructor.apply(this, arguments);
+  }
+
+  Widget.prototype.store = 'widgets';
+
+  Widget.prototype.defaults = {
+    color: 'red',
+    size: 'large',
+    in_stock: 1,
+    price: 5.50
+  };
+
+  Widget.prototype.methods = function() {
+    return console.log('not working?');
+  };
+
+  return Widget;
+
+})();
+
 views.Helpers = (function() {
 
   __extends(Helpers, Flint.Helpers);
