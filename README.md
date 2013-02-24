@@ -1,22 +1,18 @@
-# FlintJS: Model Your Data In ONE PLACE. (choir of angles noise here)
+## FlintJS: Model Your Data In ONE PLACE. (for real)
 ================
 
-* Flint.Model is an extension of [Backbone.Model](http://backbonejs.org/#Model) that works on the client
-* Flint.Model is a core class that facilitates MySQL and Mongo database transactions via [ExpressJS](http://expressjs.com/) on the server
-* Flint.Responder class responds to URL patters  /class_name/method_name/
+* Flint.Model began as an subclass of [Backbone.Model](http://backbonejs.org/#Model) which works on the client
+* Flint.Model is also core class which facilitates MySQL and Mongo database transactions via [ExpressJS](http://expressjs.com/) on the server
+* Flint.Responder class responds to URL patters /class_name/method_name/
 
-WEBSITE AND TUTORIALS COMING SOON.
+FULL DOCS AND TUTORIALS COMING SUMMER 2013.
 
 ### Install:
 
 		npm install -g flint
 		
-### Usage:
+### CLI Usage:
     
-    flint.
-    Usage:
-
-    Options:
     -n, --new      Creates a new flint application of specified name                                                     
     -s, --server   Starts the express server on port specified by the configuration                                      
     -w, --watch    Watches and compiles coffee, stylus, templates, dependencies as well as responders running the server.

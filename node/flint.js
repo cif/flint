@@ -6,7 +6,7 @@ path = require('path');
 
 // get optimist options
 argv = optimist
-  .usage('\nflint.\nFull stack coffeescript development \n\Usage:')
+  .usage('\nFlint.\nFull Stack Coffeescript/Node Development Framwork \n\CLI Usage:')
   .alias('n','new')
   .describe('n','Creates a new flint application of specified name')
   .alias('s','server')
@@ -31,16 +31,18 @@ argv = optimist
 // load the configuration file and configure our tools
 try { 
 
-  // load the configuration and the base dir
-  cwd = process.cwd();
+ // load the configuration and the base dir
+ cwd = process.cwd();
   
-  // ... unless we are copying to a new application
-  if(!argv.new){
+ // ... unless we are copying to a new application
+ if(!argv.new){
     
-    flint = require(cwd + '/' + argv.file)
-    base = path.resolve(path.dirname(argv.file)) + '/'
-  
-  }
+	  try {
+    	flint = require(cwd + '/' + argv.file)
+    	base = path.resolve(path.dirname(argv.file)) + '/'
+    } catch (e) { }
+
+ }
   
  if(argv.compile || argv.watch || argv.deploy) {
     
@@ -222,8 +224,8 @@ try {
 } catch (e) { 
   
   // it hit the fan
+  console.log('[flint] configuration file: ' + argv.file)
   console.log('[flint] cli error:')
   console.log(e)
-  console.log('[flint] configuration file: ' + argv.file)
       
 }
