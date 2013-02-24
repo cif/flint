@@ -7,6 +7,18 @@ __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); };
 __hasProp = {}.hasOwnProperty,
 __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
+collections.__SHELL__ = (function() {
+
+  __extends(__SHELL__, Backbone.Collection);
+
+  function __SHELL__() {
+    __SHELL__.__super__.constructor.apply(this, arguments);
+  }
+
+  return __SHELL__;
+
+})();
+
 controllers.Application = (function() {
 
   __extends(Application, Backbone.Router);
@@ -43,29 +55,15 @@ controllers.Application = (function() {
 
 })();
 
-models.Widget = (function() {
+models.__SHELL__ = (function() {
 
-  __extends(Widget, Flint.Model);
+  __extends(__SHELL__, Flint.Model);
 
-  function Widget() {
-    this.methods = __bind(this.methods, this);
-    Widget.__super__.constructor.apply(this, arguments);
+  function __SHELL__() {
+    __SHELL__.__super__.constructor.apply(this, arguments);
   }
 
-  Widget.prototype.store = 'widgets';
-
-  Widget.prototype.defaults = {
-    color: 'red',
-    size: 'large',
-    in_stock: 1,
-    price: 5.50
-  };
-
-  Widget.prototype.methods = function() {
-    return console.log('not working?');
-  };
-
-  return Widget;
+  return __SHELL__;
 
 })();
 

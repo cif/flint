@@ -136,15 +136,17 @@ fs = require('fs');
             data = data.replace(/<!--(.*?)-->/gm, "")
                        .replace(/(\r\n|\n|\r)/gm,"");
             
-            // check for partial conventions
-            if (plates.templates[t].namespace.indexOf('/_') > 0){            
-              compiled = 'templates[\'' + plates.templates[t].namespace.replace(/\/_/,'_') + '\'] = template(' + compile_template(data, {}) + ');\n'
-            } else if( plates.templates[t].namespace.indexOf('partial') != 0 ) {              
-              compiled = 'templates[\'' + plates.templates[t].namespace + '\'] = template(' + compile_template(data, {}) + ');\n'
-            } else {
-              compiled = 'templates[\'' + plates.templates[t].namespace.replace(/partials\//,'') + '\'] = template(' + compile_template(data, {}) + ');\n'
-            }
-            output.push(compiled);
+						if( data > ''){					
+           	 // check for partial conventions
+	            if (plates.templates[t].namespace.indexOf('/_') > 0){            
+	              compiled = 'templates[\'' + plates.templates[t].namespace.replace(/\/_/,'_') + '\'] = template(' + compile_template(data, {}) + ');\n'
+	            } else if( plates.templates[t].namespace.indexOf('partial') != 0 ) {              
+	              compiled = 'templates[\'' + plates.templates[t].namespace + '\'] = template(' + compile_template(data, {}) + ');\n'
+	            } else {
+	              compiled = 'templates[\'' + plates.templates[t].namespace.replace(/partials\//,'') + '\'] = template(' + compile_template(data, {}) + ');\n'
+	            }
+	            output.push(compiled);
+						}
         
         }
       
