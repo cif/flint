@@ -1,11 +1,11 @@
-# flint
+# FlintJS: Model Your Data In ONE PLACE. (choir of angles noise here)
 ================
 
-Full stack coffee script development.  
+* Flint.Model is an extension of [Backbone.Model](http://backbonejs.org/#Model) that works on the client
+* Flint.Model is a core class that facilitates MySQL and Mongo database transactions via [ExpressJS](http://expressjs.com/) on the server
+* Flint.Responder class responds to URL patters  /class_name/method_name/
 
-This project is in its very early stages, the client side compile and watch tools are the only thing working right now. 
-
-STAY TUNED.
+WEBSITE AND TUTORIALS COMING SOON.
 
 ### Install:
 

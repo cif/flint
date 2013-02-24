@@ -1,8 +1,8 @@
 {
   "author"         : "Ben Ipsen <email@benipsen.com>",
   "name"           : "flint",
-  "description"    : "Full Stack Coffeescript Development",
-  "version"        : "0.0.84",
+  "description"    : "Full Stack Coffeescript/Node Development",
+  "version"        : "0.0.85",
 
   "repository"     : {
     "type"           : "git",
