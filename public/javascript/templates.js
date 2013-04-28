@@ -25,4 +25,16 @@ templates['default/view'] = template(function (Handlebars,depth0,helpers,partial
   
 
 
-  return "<h1>Default View</h1>";});
+  return "<h1>Default View / Form</h1>";});
+templates['widgets/form'] = template(function (Handlebars,depth0,helpers,partials,data) {
+  helpers = helpers || Handlebars.helpers;
+  
+
+
+  return "<form onsubmit=\"return false\"><h1>Create a new widget:</h1><button class=\"create\">Make widget</button></form>";});
+templates['widgets/list'] = template(function (Handlebars,depth0,helpers,partials,data) {
+  helpers = helpers || Handlebars.helpers;
+  
+
+
+  return "<p>got widgets?</p>how come this wont render into my list?";});

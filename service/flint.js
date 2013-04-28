@@ -10,9 +10,11 @@ Flint.Model = (function() {
 
   Model.prototype.attributes = {};
 
-  function Model(responder, callback) {
+  function Model(responder, options, callback) {
     var _this = this;
     this.responder = responder;
+    if (options == null) options = {};
+    this.validate = __bind(this.validate, this);
     this.clean = __bind(this.clean, this);
     this._destroy = __bind(this._destroy, this);
     this.__save = __bind(this.__save, this);
@@ -27,6 +29,11 @@ Flint.Model = (function() {
     this.create = __bind(this.create, this);
     this.set = __bind(this.set, this);
     this.get = __bind(this.get, this);
+    if (options.store) this.store = options.store;
+    this.set(options);
+    if (!this.store) {
+      callback(false, 'A store property was not specified for a Flint.Model instance');
+    }
     if (this.defaults) this.attributes = this.defaults;
     if (this.responder.database && this.responder.database.isSql) {
       this.responder.database.describe(this.store, function(fields) {
@@ -100,7 +107,7 @@ Flint.Model = (function() {
     return this.responder.database.get(id, this.store, function(res, err) {
       if (err && callback) {
         return callback(null, err);
-      } else {
+      } else if (callback) {
         _this.set(res);
         if (callback) return callback(_this.attributes);
       }
@@ -108,16 +115,14 @@ Flint.Model = (function() {
   };
 
   Model.prototype._save = function(props, callback) {
-    var validated;
     if (props) this.attributes = this.extend(this.attributes, props);
     if (props && props.silent) {
-      validated = this.validate ? this.validate() : void 0;
-      if (!validated) {
+      if (typeof this.validate() === void 0) {
         return this.__save(callback);
       } else if (callback) {
         return callback(null, validated);
       }
-    } else {
+    } else if (callback) {
       return this.__save(callback);
     }
   };
@@ -145,6 +150,9 @@ Flint.Model = (function() {
   };
 
   Model.prototype._destroy = function(id, callback) {
+    if (!callback) {
+      throw new Error('Missing callback function on Flint.Model._destroy');
+    }
     if (!id) id = this.get('id');
     if (id) {
       return this.responder.database.destroy(id, this.store, function(res, err) {
@@ -155,7 +163,7 @@ Flint.Model = (function() {
         }
       });
     } else if (callback) {
-      return callback(null, 'Trying to destroy ' + this.store + ' record without ID');
+      return callback(null, 'Trying to destroy ' + this.store + ' record without an id attribute present');
     }
   };
 
@@ -170,6 +178,8 @@ Flint.Model = (function() {
     }
     return cleaned;
   };
+
+  Model.prototype.validate = function() {};
 
   Model.prototype.extend = function(obj, source) {
     var prop, value;
@@ -252,8 +262,8 @@ Flint.Mysql = (function() {
 
   Mysql.prototype.insert = function(object, store, callback) {
     object.id = this.uuid();
-    console.log('inserting.');
     return this.connection.query('INSERT INTO ' + store + ' SET ?', object, function(err, res) {
+      if (err) throw err;
       if (callback) {
         res.id = object.id;
         return callback(res, err);
@@ -263,7 +273,6 @@ Flint.Mysql = (function() {
 
   Mysql.prototype.update = function(object, store, callback) {
     var id;
-    console.log('updating.');
     id = object.id;
     delete object.id;
     return this.connection.query('UPDATE ' + store + ' SET ? WHERE id = ' + this.connection.escape(id), object, function(err, res) {
@@ -332,16 +341,16 @@ Flint.Responder = (function() {
   function Responder(config) {
     this.config = config;
     this.finish = __bind(this.finish, this);
-    this.after = __bind(this.after, this);
-    this.before = __bind(this.before, this);
+    this["delete"] = __bind(this["delete"], this);
+    this.put = __bind(this.put, this);
+    this.post = __bind(this.post, this);
+    this.get = __bind(this.get, this);
     if (this.config.db) {
       if (this.config.db.engine === 'mysql') {
         this.mysql = require('mysql');
         this.connection = this.mysql.createConnection(this.config.db);
         this.connection.connect();
-        if (this.connection && !this.config.quiet && this.config.debug) {
-          console.log('Established database connection.');
-        } else if (!this.connection) {
+        if (!this.connection) {
           throw new Error('Unable to establish mysql database connection!');
         }
         this.connection.query('USE ' + this.config.db.database);
@@ -356,8 +365,86 @@ Flint.Responder = (function() {
 
   Responder.prototype.after = function() {};
 
+  Responder.prototype.get = function(data, credentials, callback) {
+    var Instance, model;
+    var _this = this;
+    Instance = this.__get_model_instance();
+    return model = new Instance(this, {
+      store: this.default_store
+    }, function(model) {
+      if (data.id) {
+        return model.read(data.id, function(result) {
+          delete result.store;
+          return callback(result);
+        });
+      } else {
+        return model.find(false, callback);
+      }
+    });
+  };
+
+  Responder.prototype.post = function(data, credentials, callback) {
+    var Instance, model;
+    console.log('calling as post?');
+    Instance = this.__get_model_instance();
+    return model = new Instance(this, {
+      store: this.default_store
+    }, function(model) {
+      return model.create(data, function(res, err) {
+        if (err) {
+          return callback(null, err);
+        } else {
+          res.emit = {
+            event: 'created:' + this.default_store,
+            data: data
+          };
+          return callback(res);
+        }
+      });
+    });
+  };
+
+  Responder.prototype.put = function(data, credentials, callback) {
+    var Instance, model;
+    Instance = this.__get_model_instance();
+    return model = new Instance(this, {
+      store: this.default_store
+    }, function(model) {
+      return model.save(data, function(res, err) {
+        if (err) {
+          return callback(null, err);
+        } else {
+          res.emit = {
+            event: 'modified:' + this.default_store,
+            data: data
+          };
+          return callback(res);
+        }
+      });
+    });
+  };
+
+  Responder.prototype["delete"] = function(data, credentials, callback) {
+    var Instance, model;
+    Instance = this.__get_model_instance();
+    return model = new Instance(this, {
+      store: this.default_store
+    }, function(model) {
+      return model.destory(data.id, callback);
+    });
+  };
+
   Responder.prototype.finish = function() {
     return this.database.close_connection();
+  };
+
+  Responder.prototype.__get_model_instance = function() {
+    var Instance;
+    Instance = this.model ? models[this.model] : Flint.Model;
+    if (!Instance) {
+      throw new Error('Flint.Model class ' + this.model + ' does not exist!');
+    }
+    return Instance;
   };
 
   return Responder;

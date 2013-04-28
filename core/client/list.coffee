@@ -4,20 +4,15 @@
 #   * handles common CRUD related events and triggers them (create,read,update,delete)
 #
 
-class Grid extends Backbone.View
+class List extends Backbone.View
     
   _events:
-    
-    # common UI events
+    # common ui events
     'click .edit' : 'edit'
     'click .delete' : 'delete'
     'click .create' : 'create'
     'click .view' : 'read'
     
-    # bonus help /instructions view rendering to make your apps even better!
-    'click .help' : 'help'
-    'click .close' : 'close_help'
-  
   
   #
   #  initialize just extends the events automatically, careful to do this if you extend this class method!
@@ -25,7 +20,6 @@ class Grid extends Backbone.View
   initialize: (options, @sortable) ->
     @events = _.extend({}, @_events, @events)
     this
-  
   
   render: (template, data) ->
     @template = template if template
@@ -38,7 +32,7 @@ class Grid extends Backbone.View
     if !@data
       @data = 
         items: @collection.models
-      
+    
     if @template
       $(@el).html tmpl[@template](@data)
     else if console and console.log
@@ -56,8 +50,7 @@ class Grid extends Backbone.View
     @trigger 'rendered', @
     @after()
     this  
-
-    
+  
   #
   #  pre, post render
   #  
@@ -120,11 +113,11 @@ class Grid extends Backbone.View
       model = @collection.get(id)
       if model
         last_order = model.get('sort_order')
-        @collection.get(id).set 'sort_order', index, silent:true 
-        @collection.get(id).set 'order_before_sort', last_order, silent:true      
+        @collection.get(id).set 'sort_order', index, silent: true 
+        @collection.get(id).set 'order_before_sort', last_order, silent: true
         @serialized.push
           id: id
-          sort_order: index    
+          sort_order: index
     
     # sort the collection and update default data. custom before() methods should override @data setting.
     @collection.sort()
@@ -132,17 +125,4 @@ class Grid extends Backbone.View
         items: @collection.models
     @trigger 'sort', @serialized
   
-  #
-  # renders/closes help text if @help_template is provided
-  #   
-  help: (help=true) =>
-    @before()
-    if !@data
-      @data = {}
-    @data.help = help
-    if @template_help
-      $(@el).html tmpl[@template_help](@data) 
-  
-  close_help: =>
-    @render()
     

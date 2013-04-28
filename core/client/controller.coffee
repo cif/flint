@@ -21,9 +21,9 @@ class Controller extends Backbone.Router
   collection      : false
   model           : false  
   
-  # Specify the list class and list element, by default Flint.List will be sued.
+  # Specify the list class and list element, by default Flint.List will be used
   list            : 'List'
-  list_el         : '#app'
+  #list_el         : '#app'
   
   # If the list is sortable, a simple boolean flag and sorted_url attribute will take care of everything for you
   sortable        : false  
@@ -32,7 +32,7 @@ class Controller extends Backbone.Router
   
   # Speficy the form class and element, by default Flint.Form will be used
   form            : 'Form'
-  form_el         : '#app'
+  #form_el         : '#app'
   
   # Determines whether or not validation will be called as the model is changed by the UI.
   # This uses silent: true when setting changed attributes on the model. See Flint.Form docs for more.
@@ -62,7 +62,8 @@ class Controller extends Backbone.Router
       throw new Error('List class "'+@list+'" does not exists') 
     
     # Configure @list              
-    @list = new list { el: @list_el }, @sortable
+    @list = new list { }, @sortable
+    @list.el = @list_el if @list_el
     @list.sort_handle = @sort_handle
     @list.template = @template_list    
     @list.template_help = @template_help if @template_help

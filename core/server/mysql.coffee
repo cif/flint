@@ -55,32 +55,33 @@ class Mysql
     
     # generate an id
     object.id = @uuid()
-    console.log 'inserting.'
     # store the object
     @connection.query 'INSERT INTO ' + store + ' SET ?', object, (err, res) ->
+      if err
+        throw err
       if callback
         res.id = object.id
         callback(res, err)
   
   # update existing records
   update: (object, store, callback) =>
-    console.log 'updating.'
+    
     # avoid setting the id
     id = object.id
     delete object.id
     
-    # udpater
+    # udpate
     @connection.query 'UPDATE ' + store + ' SET ? WHERE id = ' + @connection.escape(id), object, (err, res) ->
       if callback
         callback(res, err)
   
-  
+  # delete a record
   destroy: (id, store, callback) =>
     @connection.query 'DELETE FROM ' + store + ' WHERE id = ' + @connection.escape(id), (err, res) ->
       if callback
         callback(res, err)
   
-  # raw query. 'nuff said. you should probably careful and selected with this
+  # raw query. 'nuff said. 
   query: (query, callback) =>
     results = []
     @connection.query @connection.escape(query), (err, rows, fields) ->

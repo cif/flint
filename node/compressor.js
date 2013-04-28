@@ -21,11 +21,11 @@ uglify = require('uglify-js');
       try { 
         
         // concat and minify all the javascript output
-        deps = fs.readFileSync(sources.depends)
-        tmpl = fs.readFileSync(sources.plates)
-        app = fs.readFileSync(sources.scripts)
+        deps = fs.readFileSync(sources.depends) 
+				tmpl = fs.readFileSync(sources.plates);
+        app = fs.readFileSync(sources.scripts);
       
-        output = deps + '\n' + tmpl + '\n' + app
+        output = deps + '\n' + tmpl + '\n' + app;
         
         // compress the file
         var ast = uglify.parser.parse(output);
@@ -37,12 +37,12 @@ uglify = require('uglify-js');
         fs.writeFileSync(to_file, output, 'utf8')
       
         // done!
-        console.log(color.green + '[compressor] compiled and minifed deploy target file: ' + to_file + color.reset)
+        console.log(color.green + '[compressor] compiled and minifed deploy target file: ' + to_file + color.reset);
       
       } catch(e){
         
-        console.log(color.red + '[compressor] ERROR: problem compressing javasript: ' + color.reset)
-        console.log(e)
+        console.log(color.red + '[compressor] ERROR: problem compressing javasript: ' + color.reset);
+        console.log(e);
         
       }
     

@@ -1,4 +1,4 @@
 
-// checks wristband colors !
+// checks wristband colors
 
 

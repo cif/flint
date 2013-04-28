@@ -1,10 +1,28 @@
 # this class reads model attributes and decides whether or not they should be stored locally
 class Sync
   
+  listeners: {}
+  
   # overrides backbone.sync
-  constructor: ->
+  constructor: (enable_socket_io=true) ->
     Backbone.sync = @backbone
+    @io = io.connect('http://' + location.host)
+    @io.on 'data', @broadcast
     this
+  
+  # this method allows application classes to listen for socket.io events
+  on: (evnt, listener) =>
+    if !@listeners[evnt]
+      @listeners[evnt] = []
+    @listeners[evnt].push listener  
+    
+  
+  broadcast: (data) =>
+    if data.event
+      for to_call in @listeners[data.event]
+        to_call(data)
+    else
+      console.log '[flint] server emitted socket data with no event attached:' if console and console.log
         
   # this method overrides backbone.sync
   backbone: (method, model, options) =>  
@@ -17,7 +35,7 @@ class Sync
     if !options.url and !model.url and !model.localstore and !options.localstore and !model.collection.localstore
       throw new Error('A url or localstore property must be defined to use Storage.sync!')
         
-    # BIG OL' TODO
+    # TODO
     # check to see if we should use localstore. objects should be stored, but not read from local if the app is online
     #if options.localstore or model.localstore or model.collection.localstore
      # app.log('got localstore!')
@@ -74,7 +92,7 @@ class Sync
     if params.type != 'GET' and !Backbone.emulateJSON
       params.processData = false
       
-    $.ajax(_.extend(params, options))
+    @last_request = $.ajax(_.extend(params, options))
     this
   
   

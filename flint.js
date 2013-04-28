@@ -12,6 +12,7 @@ exports.config = {
 	coffeescript: 'app/coffee',
 	compile_coffee_to: 'public/javascript/application.js',
   deploy_javascript_to: 'public/javascript/production.js',
+  deploy_dependencies_to: 'public/javascript/dependencies.min.js',
    
   // stylus
   stylus: 'app/stylus',

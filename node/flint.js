@@ -25,6 +25,9 @@ argv = optimist
   .default('f','./flint.js')
   .alias('b','build')
   .describe('b','Compiles the core flint libraries as flint.js to the build targets')
+  // todo
+  //.alias('r','run')
+  //.describe('r','Runs the application in production mode')
   .argv
 
 
@@ -122,12 +125,13 @@ try {
       // deploy all client side javascript to a single minified file.
       compressor = require('./compressor');
       dest = base + flint.config.deploy_javascript_to
-      squeeze = {}
+			dest_dep = base + flint.config.deploy_dependencies_to
+			squeeze = {}
       squeeze.depends = depencency.out
       squeeze.plates = plates.out
       squeeze.scripts = maker.out
       compressor.configure(squeeze)
-      compressor.deploy(dest)
+      compressor.deploy(dest, dest_dep)
       
     }
   
@@ -192,9 +196,10 @@ try {
      coffee_maker = {}
      coffee_maker.base = ''
      coffee_maker.in =  __dirname + '/../core/client/'
-     coffee_maker.out = client_dest;
+     coffee_maker.out = client_dest
      coffee_maker.build = true
      coffee_maker.template_engine = false
+		 coffee_maker.minify = true
      brewer.configure(coffee_maker)
      brewer.compile()
      
@@ -203,7 +208,7 @@ try {
      back_burner = {}
      back_burner.base = ''
      back_burner.in =  __dirname + '/../core/server/'
-     back_burner.out = server_dest;
+     back_burner.out = server_dest
      back_burner.build = true
      back_burner.export = true
      back_burner.template_engine = false

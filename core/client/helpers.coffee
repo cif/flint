@@ -10,7 +10,6 @@ class Helpers
     Handlebars.registerHelper 'link', @link
     Handlebars.registerHelper 'link_nohref', @link_nohref
     Handlebars.registerHelper 'list', @list
-    Handlebars.registerHelper 'filtered_list', @filtered_list
       
     Handlebars.registerHelper 'input', @input
     Handlebars.registerHelper 'text_field', @text_field
@@ -26,6 +25,7 @@ class Helpers
     Handlebars.registerHelper 'sql_to_slash', @sql_to_slash
     Handlebars.registerHelper 'date_format', @date_format   # requires momentjs lib
     Handlebars.registerHelper 'twenty_four_to_twelve', @twenty_four_to_twelve
+    
     Handlebars.registerHelper 'dollar', @dollar
     Handlebars.registerHelper 'random', @random
     Handlebars.registerHelper 'sum', @sum
@@ -38,27 +38,21 @@ class Helpers
   
   # overriden by super, usually.
   initialize: =>
-      
+  
+  # interactive timing helpers    
   delay: (ms, func) =>
     @timer = setTimeout func, ms
     @timer
     
-  loader: (selector) ->
-    $(selector).html('<p class="loader"><em class="one">&nbsp;</em><em class="two">&nbsp;</em><em class="three">&nbsp;</em><em class="four">&nbsp;</em></p>')
-    $('.loader').css({opacity:1})
-    $(selector)
-              
+  after_transition: (element, callback) =>
+    # unbind current transitions
+    events = 'webkitTransitionEnd transitionend oTransitionEnd'
+    $(element).unbind events
+    $(element).bind events, =>
+      $(element).unbind events
+      callback()            
   
-  # ___________ view helpers registered with handlebars ___________  
-  
-  eq: (value, test, options) ->
-    if value is test
-      return options.fn(this)
-    else
-      return options.inverse(this)
-      
-  
-  # form helpers
+  # links and lists
   link: (href, text, attributes) ->
     attrs = []
     _.map(attributes.hash, (value, key) -> 
@@ -82,25 +76,16 @@ class Helpers
     out = if out.length > 0 then out.join('') else zero_length_message
     new Handlebars.SafeString(out) 
   
-  filtered_list: (context, filter, value, zero_length_message, block) ->
-    out = []
-    values = value.split(',')
+  
+  # equals test
+  eq: (value, test, options) ->
+    if value is test
+      return options.fn(this)
+    else
+      return options.inverse(this)
 
-    _.each(context, (model) ->
-      val = model.get(filter)
-      pass = false
-      _.each(values, (test) ->
-          if val is test
-            pass = true
-      )
-      out.push(block(model.attributes)) if pass
-    )
-    out = if out.length > 0 then out.join('') else zero_length_message
-    new Handlebars.SafeString(out) 
   
-  
-  # ___________ form field helpers ___________
-  
+  # form field rendering helpers  
   text_field: (model, field, attributes) ->
     attrs = []
     _.map(attributes.hash, (value, key) -> 
@@ -154,7 +139,7 @@ class Helpers
       attrs.push key + '="' + value + '"'
     ) if attributes
     
-    selected = model.get(field)
+    selected = if model and model.get and model.get(field) then model.get(field) else false
     opts = []
     for value in [min...max+1]
       optstr = '<option '
@@ -194,9 +179,8 @@ class Helpers
     value = if model and model.get then model.get(field) else ''
     new Handlebars.SafeString('<textarea name="'+field+'" ' + attrs.join(' ') + '>'+value+'</textarea>')
   
-  
-  # ___________ cookie function ___________
-  
+    
+  # cookie helpers (not registered with handlebars)  
   cookie: (name, value, expires='', path='/', domain='') =>
     if _.isUndefined(value)
       return @_get_cookie(name)
@@ -221,7 +205,6 @@ class Helpers
         value = cookie.substring( locate.length + 1, cookie.length)
     value
 	  
-    
     
   # ___________ date helpers ___________
   month_grid: (month, year) ->
@@ -293,6 +276,7 @@ class Helpers
       sp[2] = sp[2].substr(0, sp[2].indexOf(' '))
     new Date(sp[0], sp[1]-1, sp[2])
   
+  # date format requires moment (http://momentjs.com/)
   date_format: (date, format) =>
     if !date or date is '' or date is '0000-00-00' or date is '0000-00-00 00:00:00'
       return 'N/A'
@@ -317,7 +301,7 @@ class Helpers
     y = js.getFullYear()
     m + '/' + d + '/' + y  
   
-  # ___________ miscelaneous formatting helpers ___________
+  # misc formatting helpers
   
   dollar: (n, decimals = 2, decimal_separator = ".", thousands_separator = ",", show_decimals=true) ->
     c = if isNaN(decimals) then 2 else Math.abs decimals

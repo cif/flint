@@ -16,7 +16,7 @@ cmd = require('child_process').exec;
     
     try {
     
-      console.log(color.yellow + '[builder] building your shiny new app "'+name+'"' + color.reset);
+      console.log(color.yellow + '[builder] building new flint app "'+name+'"' + color.reset);
       
       // make the new directory
       var dir =  './' + name
@@ -28,21 +28,12 @@ cmd = require('child_process').exec;
       cmd('cp -R ' + __dirname + '/../service/' + ' ' + dir + '/service/')
       cmd('cp -R ' + __dirname + '/../flint.js' + ' ' + dir + '/flint.js')
       
-      // delete collection, controller and model shells and documentation
-      cmd('rm ' + __dirname + '/../app/coffee/collections/_collection.shell.coffee')
-      cmd('rm ' + __dirname + '/../app/coffee/controlers/controller.shell.coffee')
-      cmd('rm ' + __dirname + '/../app/coffee/models/model.shell.coffee')
-      cmd('rm ' + __dirname + '/../app/coffee/models/model.shell.coffee')
-      
-      // remove the docs folder from templates
-      cmd('rm -rf ' + __dirname + '/../app/templates/views/docs')
-      
-      console.log(color.green + '[builder] your new app is "'+name+'" is ready!' + color.reset);
+      console.log(color.green + '[builder] your new app "'+name+'" is ready!' + color.reset);
       
       
     } catch (e){
       
-      console.log(color.red + '[builder] error creating new filnt app: ' + color.reset);
+      console.log(color.red + '[builder] error creating new flint app!' + color.reset);
       console.log(e.message);
     
     }

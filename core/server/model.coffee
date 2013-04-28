@@ -12,7 +12,14 @@ class Model
   attributes: { }
     
   # takes the reponder and an optional store if specified  
-  constructor: (@responder, callback) ->
+  constructor: (@responder, options={}, callback) ->
+    
+    # set options
+    @store = options.store if options.store
+    @set options
+    
+    if !@store
+      callback false, 'A store property was not specified for a Flint.Model instance'
     
     # defaults start as attributes
     if @defaults
@@ -74,7 +81,7 @@ class Model
   # _methods serve as the actual implementations
   # this way primary functions are easily overridable and only copy a line  
   
-  _create:(props, callback ) =>
+  _create:(props, callback) =>
     # extend any additional properties passed to save
     if props
       @attributes = @extend(@attributes, props)
@@ -100,7 +107,7 @@ class Model
     @responder.database.get id, @store, (res, err) =>
       if err and callback
         callback(null, err)
-      else
+      else if callback
         @set res
         if callback
           callback @attributes
@@ -112,15 +119,15 @@ class Model
       
     # check to see if we should validate
     if props and props.silent
-      validated = if @validate then @validate() else undefined
-      if !validated
+      if typeof @validate() is undefined
         @__save(callback)
       else if callback
         callback(null, validated)
-    else
+    else if callback
       @__save(callback)
     
   __save: (callback) =>
+    
     if @get 'id'
       @responder.database.update @clean(), @store, (res, err) =>
         if err and callback
@@ -136,6 +143,8 @@ class Model
           callback @
   
   _destroy: (id, callback) =>
+    if !callback
+      throw new Error 'Missing callback function on Flint.Model._destroy'
     if !id
       id = @get('id')
     if id  
@@ -145,7 +154,7 @@ class Model
           else if callback
             callback @
     else if callback
-      callback(null, 'Trying to destroy '+@store+' record without ID')
+      callback(null, 'Trying to destroy '+@store+' record without an id attribute present')
   
           
   # clean() scrubs any invalid attributes present prior to saving 
@@ -159,8 +168,13 @@ class Model
       if @storable_fields.indexOf(prop.toString()) >= 0
         cleaned[prop] = val  
     cleaned
+  
+  # validate needs to be present, but is generally overriden by the superclass,
+  validate: =>
+    # return value of undefined a la Backbone.js means it passed.
+    return undefined  
      
-  # quick extend impl
+  # quick and dirty non recusrive extend impl
   extend: (obj, source) ->
     for prop,value of source
       obj[prop] = value

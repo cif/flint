@@ -1,6 +1,7 @@
 
-// burner currently replicates WAY too much of brewer's functionality.  
-// unfortunately, the responders and models being compiled need flint.js to be part of the same file due to coffeescript protoyping.
+// burner currently replicates WAY too much (read, nearly all) of brewer's functionality.  
+// unfortunately, the client and server methods being compiled need separate instance namespaces 
+// this probably an issue with - require cache, shared model directory, lack of proper namespacing?
 
 coffeescript = require('coffee-script');
 fs = require('fs');
