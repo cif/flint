@@ -8,87 +8,127 @@ path = require('path');
 
 (function(){
   
-  var app, sock, config, responders;
+  var app, sock, config, responders, hbs;
   
-  var setupRoutes = function(){
+  var setupRoutes = function(routes){
     
-    // serve public assets the app needs for GUI
-    app.get('/css/:file?', function(req, res){
-      res.sendfile(path.resolve('./public/css/' + req.params.file))
-    })
+    // serve public assets the app needs for GUI - this is old, express.static is probably better?
+    app.get('/css/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/css/' + req.params.file)) });
+    app.get('/javascript/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/javascript/' + req.params.file)) }); 
+    app.get('/fonts/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/fonts/' + req.params.file)) });
+    app.get('/public/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/' + req.params.file)) });
+		app.get('/favicon.ico', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/favicon.ico')) });
     
-    app.get('/javascript/:file?', function(req, res){
-      res.sendfile(path.resolve('./public/javascript/' + req.params.file))
-    })
-    
-    app.get('/fonts/:file?', function(req, res){
-      res.sendfile(path.resolve('./public/fonts/' + req.params.file))
-    })
-    
-    app.get('/public/:file?', function(req, res){
-      res.sendfile(path.resolve('./public/' + req.params.file))
-    })
+    // serves public index, 
+		// flint.js configuration is passed as handlebars data 
+    app.get('/', function(req, res){  res.render('index.html', {flint:config}); });
 
-		app.get('/favicon.ico', function(req, res){
-      res.sendfile(path.resolve('./public/favicon.ico'))
-    })
-    
-		// reserved for documentation
-		app.get('/docs/:file?', function(req, res){
-			file = req.params.file ? req.params.file : 'index.html'
-      res.sendfile(path.resolve('./docs/' + file))
-    })
-    
-    // serve public index
-    app.get('/', function(req, res){ 
-      file = config.debug ? './public/index_develop.html' : './public/index.html';
-      res.sendfile(path.resolve(file))
-    })
-    
+		// setup routes specified by routes.js
+		for(route in routes){
+			
+			app.all(route, respondToCustomRouteRequest);
+			
+		}
+
     // all other requests are assumed to be REST API calls
-    app.get('*', function(req, res){
-        
-        uri_parts = req.url.split('/')
-        uri_parts.shift()
-        inflector = require('./inflector')
-        responders = require('../service/responders')       
-        
-        // asyncronous responder 
-        respondToAppRequest(req, uri_parts, function(response, error){
-          
-          if(!error){
-        		
-						// see if we have to emit anything to io.
-						if(response.emit){
-							sock.sockets.emit('data', response.emit)
-						}
+    app.all('*', respondToAppRequest);
+	
+		
+  }
+
+	
+  var sendFinalResponse = function(res, response, error){
+			
+			if(!error){
+       	
+					// if there is anything to emit to io, send it along.
+					if(response.emit){ sock.sockets.emit('data', response.emit); }
+					
+					// check for denied access.
+					if (response.denied){
 						
-            // return the json back to our application
-            res.set('Content-Type','text/json')
-            //res.send(200)
-        		res.send(response)
-            
+						res.set('Content-Type','text/plain')
+          	res.send('Access denied');
+          	res.send(403);
+					
+					} else if (response.template) {
 						
-          } else {
-          
-            // return an error
-            res.set('Content-Type','text/plain')
-            res.send('Flint.js server error:' + "\n" + error)
-            res.send(500)
+						// this response wants to render a real view.
+						response.flint = config;
+						res.render(response.template, response);
 						
-          
-          }
+						
+					} else {
+					
+						// return the json back to our application
+		        res.set('Content-Type','application/json');
+		     		res.send(response);
+         
+					}
+				
+				
+        } else {
         
-        });
-        
-    });
+          // return an error
+          res.set('Content-Type','text/plain')
+          res.send('Flint.js server error:' + "\n" + error)
+          res.send(500)
+				 
+        }
 
   }
+
+	var respondToAppRequest = function(req, res){
+        
+       uri_parts = req.url.split('/');
+       uri_parts.shift();
+       
+			 // asyncronous JSON responder 
+       getApplicationResponse(req, uri_parts, function(response, error){
+         
+         sendFinalResponse(res, response, error);
+       
+       });
+       
+   };
+
+	// responds to custom route requests
+	var respondToCustomRouteRequest = function(req, res){
+		
+		// find the method we need to call using our routes
+		url = req.url;
+		for(route in config.routes){
+			
+			// replace any string arguments with wildcards for matching the method we are trying to call.
+			wild = new RegExp(route.replace(/\:(.*)\?/g,'(.*)'));
+			if(url.match(wild)){
+				
+				matched = config.routes[route];
+				getCustomResponse(req, matched, function(response, error){
+					
+					 sendFinalResponse(res, response, error);
+					
+				});
+				
+				// no need to keep looking.
+				return true;
+				
+		  }  
+			
+		}
+		
+		// unable to match a route
+		sendFinalResponse(res, null, 'Not Found: Unable to match a route to this request.')
+			
+	}
   
-  var respondToAppRequest = function(req, uri_parts, callback){
+	// responds to application requests
+  var getApplicationResponse = function(req, uri_parts, callback){
     
     // get controller class and the method to call
-    controller = uri_parts[0].camelize()
+		inflector = require('./inflector');
+    responders = require(path.resolve(config.base + 'service/responders'));
+		controller = uri_parts[0].camelize()
     request_method = req.method.toLowerCase()
     method_to_call = uri_parts[1] ? uri_parts[1] : false;
     
@@ -100,7 +140,6 @@ path = require('path');
       
       // instantantiate the controller
       Controller = new responders.controllers[controller](config);
-      
       
     } else if(Flint.Responder[method_to_call]) {
       
@@ -114,18 +153,13 @@ path = require('path');
 		}
 		
 		// provide request data to the method we are about to call
-    data = {};
-
+    data = getRequestData(req);
+		credentials = getRequestCredentials(req);
+		
 		// if we have additional request parts, assume the first one is an id, per common REST API uris. 
 		if(uri_parts[1]) data.id = uri_parts[1];
 		
-		// TODO - extend any other request data that comes through
-		// for(object in req.post) etc. 
-		
-		// TODO - use cookies in order to determine a requestor's credentials (security.js)
-    credentials = {};
-		
- 		// call before on controller class
+		// call before on controller class
     Controller.before(data, credentials);
     
 		// give the controller a default store (table) based on the url
@@ -164,16 +198,102 @@ path = require('path');
 
      }
       
-  }
+  };
+
+  var getCustomResponse = function(req, responder_method, callback){
+			
+			// get the controller 
+			responders = require(path.resolve(config.base + 'service/responders'));
+			method = responder_method.split('.');
+			controller = method[0];
+			
+			if(responders.controllers[controller]){
+      
+      	// instantantiate the controller
+      	Controller = new responders.controllers[controller](config);
+      	
+				method_to_call = method[1];
+				
+				// todo
+				data = getRequestData(req);
+				credentials = getRequestCredentials(req);
+				
+				Controller.before(data, credentials);
+					
+				if(Controller[method_to_call]) {
+       
+					 // call the request_method on the controller
+		       return_callback = function(response, error){
+         
+		         //wrap up the controler
+		         Controller.after(data, credentials);
+         
+		         // callback to deliver the response
+		         return callback(response, error);
+       	 
+		       };
+					 
+					 // get the arguments to apply in an array
+					 arguments = [];
+					 for(arg in req.params){
+							arguments.push(req.params[arg]);
+					 }
+					 arguments.push(data, credentials, return_callback);
+					 
+					 // call the controller
+					 Controller[method_to_call].apply(null, arguments);
+					 	
+			
+				 } else {
+				
+		       return callback(null, 'Missing  method ' + method_to_call + ' on responder class ' + controller);
+
+		     }	
+
+      
+   		} else {
+			
+					return callback(null, 'Missing responder class ' + controller);
+			 
+			}
+			
+	
+	};
+	
+	var getRequestData = function(req){
+			
+		data = {};
+		
+		// add any post body data
+		for(obj in req.body){
+			data[obj] = req.body[obj];
+		}
+		
+		// extend query paramenters but dont override
+		for(obj in req.query){
+			if(!data.hasOwnProperty(obj)){
+				 data[obj] = req.query[obj];
+			}
+		}
+		return data;
+		
+	}
+	
+	
+	var getRequestCredentials = function(req){
+		
+		// todo!
+		return {};
+		
+	}
   
 	// this method is called when watching for changes (dev mode)
   var respondersChanged = function(){
       
       // clear the responders.js from require cache
-      cwd = process.cwd()
-      delete require.cache[cwd + '/service/responders.js']
+      delete require.cache[path.resolve(config.base + 'service/responders.js')]
     
-  }
+  };
   
   exports.configure = function(options){ config = options; }
   exports.start = function(debug, watch){
@@ -186,9 +306,25 @@ path = require('path');
     config.debug = debug
     
     // start the app server
-    app = express()
-		server = http.createServer(app) 
-    setupRoutes()
+    app = express();
+		server = http.createServer(app); 
+		
+		// register handlebars are our wonderful templating engine
+		hbs = require('hbs');
+		
+		// register Flint.Helpers
+		flint = require(path.resolve(config.base + 'service/flint'));
+		helpers = new Flint.Helpers(hbs);
+		helpers.config = config;
+		app.set('view engine', 'html');
+		app.set('views', path.resolve(config.base + 'app/views/'));
+		app.engine('html', hbs.__express);
+		
+		// make sure we are parsing requests
+		app.use(express.bodyParser());
+		
+		// setup the routes
+		setupRoutes(config.routes);
 
 		// start the socket server
 		options = {
@@ -198,8 +334,8 @@ path = require('path');
 		sock.sockets.on('connection', function(client){ console.log('[flint] A client connected to socket.io.'); });
     
 		// start the server 
-    server.listen(port)
-    console.log('[flint] Server listening on port ' + port)
+    server.listen(port);
+    console.log('[flint] Server listening on port ' + port);
 		
 
   }

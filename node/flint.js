@@ -43,6 +43,8 @@ try {
 	  try {
     	flint = require(cwd + '/' + argv.file)
     	base = path.resolve(path.dirname(argv.file)) + '/'
+			flint.config.base = base
+			flint.config.flint_path = __dirname
     } catch (e) { }
 
  }

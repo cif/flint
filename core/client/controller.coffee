@@ -10,7 +10,6 @@
 class Controller extends Backbone.Router
   
   # Specify a template path for each CRUD action. 
-  # There is also an optional help_template property
   template_create : 'default/create'
   template_edit   : 'default/edit'
   template_view   : 'default/view'
@@ -100,10 +99,9 @@ class Controller extends Backbone.Router
     this
   
   
-  # This is a method that is called after initialize, in case you need it.
+  # This is a method that is called after initialize, in case you need it
   init: =>
-    
-  
+      
   #  Binds the application components to common events which include:
   #  creation, editing, sorting, saving, deleting, leaving the view (canceled)
   bind: =>  
@@ -128,7 +126,7 @@ class Controller extends Backbone.Router
     @.on 'saved deleted sorted destroyed delete_undone sort_undone destroy_error', @update
     
   
-  #  Unbind frees up the memory consumed by listening for many events. 
+  #  Unbind frees up the memory consumed by listening for events. 
   unbind: =>
   _unbind: =>
     @unbind()
@@ -152,6 +150,8 @@ class Controller extends Backbone.Router
           if @list.collection.length is 0
              return callback false
           callback @list.collection
+        error: (obj, error) =>
+          @error(obj, error)
   
   # refresh() simply calls fetch with the argument set to true, 
   # it will grab the collection from the data store even if it is already loaded
@@ -180,7 +180,9 @@ class Controller extends Backbone.Router
         success: (result) =>
           if callback
             callback model
-          
+        error: (obj, error) =>
+          @error(obj, error)
+                      
   #  grab(id)
   #  a shortcut to simply call get on the collection assosicated with this controller.
   grab: (id) =>
@@ -192,12 +194,13 @@ class Controller extends Backbone.Router
     if !model
       callback false
       return
-    
     model.fetch
-       silent: true
+      silent: true
       success: (result) =>
         if callback
           callback model
+      error: (obj, error) =>
+          @error(obj, error) 
   
   # create() is the c in your crud. it will render a new model instance into your form 
   # using defaults to populate any values specified.
@@ -218,9 +221,8 @@ class Controller extends Backbone.Router
         @edit model.id
         @trigger 'returned', model
         # handle errors resulting from save and remove the model from the collection 
-      ,error: (model, message) =>
-          @app.notifications.error(message) unless not @app.notifications
-          @list.collection.remove model, silent:true
+      ,error: (obj, error) =>
+          @error(obj, error)
              
   # edit() renders an existing model into @form
   edit: (id) =>
@@ -293,17 +295,11 @@ class Controller extends Backbone.Router
     @list.render()
     
   # Handle any errors recived from validation or other     
-  error: (object, error) =>
-    
+  error: (object, error) =>    
     if console and console.log
       console.log('NOTICE: error triggered on Flint.Controller: ' + error)
     error = error.responseText unless _.isString(error)
-    
-    # check to see if we are getting 401 and force the app to do an update call
-    if error.indexOf('401') > 0
-      @app.update() unless not @app.update
-    else
-      @app.notifications.error(error) unless not @app.notifications
+    @app.notifications.error(error) unless not @app.notifications
       
 
   # sorted() handles sorting from @list. if the user confirms instead of undoing their action 

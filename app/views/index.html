@@ -13,23 +13,24 @@
 <!-- REMOVE THIS MARKUP -->  
 <div class="docs">
   <h1>Flint is up and running.</h1>
-  <p>This markup is located in public/index_develop.html. You should delete it before you get started.</p>
+  <p>This markup is located in views/index.html. You should delete it before you get started.</p>
   <p>Want learn more about how Flint works? Read <a href="http://useflint.org/docs/">the documentation</a></p>
   <p><strong>Have Fun Building!</strong><br /><br /> &nbsp;&nbsp;&mdash; The Flint Crew</p>
 </div>
+<!-- END INTRO MARKUP  -->
 
-<!-- END INTRO MARKUP  -->  
-<div id="another-id"> whatz the fuck?</div>
-<div id="new"> but the new one works? this is retarded...</div>
 
 <script type="text/javascript" src="/socket.io/socket.io.js"> </script>
-<script type="text/javascript" src="/javascript/dependencies.js"> </script>
-<script type="text/javascript" src="/javascript/templates.js"> </script>
-<script type="text/javascript" src="/javascript/application.js"> </script>
+{{#if flint.debug}}
+  <script type="text/javascript" src="/javascript/dependencies.js?{{cache_buster}}"> </script>
+  <script type="text/javascript" src="/javascript/templates.js?{{cache_buster}}"> </script>
+  <script type="text/javascript" src="/javascript/application.js?{{cache_buster}}"> </script>
+{{else}}
+  <script type="text/javascript" src="/javascript/production.js?{{cache_buster}}"> </script>
+{{/if}}  
 
 <script type="text/javascript">
 	$(document).ready(function(){ app = new controllers.Application(); });
 </script>
-
 </body>
 </html>

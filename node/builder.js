@@ -28,6 +28,11 @@ cmd = require('child_process').exec;
       cmd('cp -R ' + __dirname + '/../service/' + ' ' + dir + '/service/')
       cmd('cp -R ' + __dirname + '/../flint.js' + ' ' + dir + '/flint.js')
       
+			// remove all the docs stuff
+			cmd('rm -rf ' + dir + '/app/responders/docs.coffee')
+			cmd('rm -rf ' + dir + '/app/stylus/docs.styl')
+			cmd('rm -rf ' + dir + '/app/views/docs/')
+			
       console.log(color.green + '[builder] your new app "'+name+'" is ready!' + color.reset);
       
       

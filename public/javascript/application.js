@@ -109,6 +109,8 @@ models.Object = (function() {
     Object.__super__.constructor.apply(this, arguments);
   }
 
+  Object.prototype.store = 'objects';
+
   return Object;
 
 })();

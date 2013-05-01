@@ -11,7 +11,7 @@ class Responder
       
       # connect to mysql
       if @config.db.engine is 'mysql'
-        @mysql = require 'mysql' 
+        @mysql = require path.resolve(@config.flint_path + '/../node_modules/mysql') 
         @connection = @mysql.createConnection @config.db
         @connection.connect()
         if !@connection    
@@ -23,14 +23,16 @@ class Responder
         
       # todo - mongo or other nosql for document based apps  
       
-      
     this
   
   
   # called before and after the primary request method.
   before: ->
+    true
+    
   after: ->
-  
+    true
+    
   # generic implementations of get, post, put and delete
   get: (data, credentials, callback) =>
     Instance = @__get_model_instance()
@@ -45,7 +47,6 @@ class Responder
         model.find false, callback
       
   post: (data, credentials, callback) =>
-    console.log('calling as post?')
     Instance = @__get_model_instance()
     model = new Instance @, { store: @default_store }, (model) ->
       model.create data, (res, err) ->

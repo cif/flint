@@ -212,7 +212,7 @@ fs = require('fs');
           // determine whether or not it's a file or directory. 
           info = files[f].split(':')
           
-          if( info[0] == 'file' && (info[1].indexOf('.hb') > 0 || info[1].indexOf('.handlebars') > 0 || info[1].indexOf('.jade') > 0 || info[1].indexOf('.eco') > 0) ){
+          if( info[0] == 'file' && (info[1].indexOf('.hb') > 0 || info[1].indexOf('.handlebars') > 0 || info[1].indexOf('.hbs') > 0 || info[1].indexOf('.html') > 0) ){
             
             // watch the file
             if(watch) {

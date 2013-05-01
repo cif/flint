@@ -86,13 +86,13 @@ class Model
     if props
       @attributes = @extend(@attributes, props)
     
-    # delete the id attributes 
+    # delete the id attribute to ensure a new instance 
     delete @attributes.id
       
     # check to see if we should validate
-    if props and props.silent
-      validated = if @validate then @validate() else undefined
-      if !validated
+    if !props or !props.silent
+      validate = @validate()
+      if typeof validate is 'undefined'
         @__save(callback)
       else if callback
         callback(null, validated)
@@ -107,27 +107,28 @@ class Model
     @responder.database.get id, @store, (res, err) =>
       if err and callback
         callback(null, err)
-      else if callback
+      else
         @set res
         if callback
           callback @attributes
           
   _save:( props, callback ) =>
+    
     # extend any additional properties passed to save
     if props
       @attributes = @extend(@attributes, props)
-      
+    
     # check to see if we should validate
-    if props and props.silent
-      if typeof @validate() is undefined
+    if !props or !props.silent
+      validate = @validate()
+      if typeof validate is 'undefined'
         @__save(callback)
       else if callback
-        callback(null, validated)
-    else if callback
+        callback(null, validate)
+    else
       @__save(callback)
     
   __save: (callback) =>
-    
     if @get 'id'
       @responder.database.update @clean(), @store, (res, err) =>
         if err and callback

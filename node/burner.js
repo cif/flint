@@ -156,7 +156,7 @@ fs = require('fs');
   
     //write the output file
     try {
-      
+
       fs.writeFileSync(coffee.out, out.join(''), 'utf8');
       if(!coffee.silent)
         console.log(color.green + '[burner] compiled coffeescript sources to ' + coffee.out + color.reset);

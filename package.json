@@ -1,34 +1,32 @@
 {
-  "author"         : "Ben Ipsen <email@benipsen.com>",
-  "name"           : "flint",
-  "description"    : "Full Stack Coffeescript And Node Development",
-  "version"        : "0.0.87",
-
-  "repository"     : {
-    "type"           : "git",
-    "url"            : "http://github.com/cif/flint"
+  "author": "Ben Ipsen <email@benipsen.com>",
+  "name": "flint",
+  "description": "A Node Based Development Framework",
+  "version": "0.0.88",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/cif/flint"
   },
-
-  "main"           : "./node/flint.js",
-    "directories"    : {
-    "lib"            : "./node/"
+  "main": "./node/flint.js",
+  "directories": {
+    "lib": "./node/"
   },
-
-  "bin"            : {
+  "bin": {
     "flint": "./bin/flint"
   },
-
-  "engines"        : {
-    "node"           : ">= 0.4.9"
+  "engines": {
+    "node": ">= 0.4.9"
   },
-  
-  "dependencies"   : {
-    "handlebars"  : ">= 1.x",
-    "stylus" : ">= 0.22.1",
-    "coffee-script"   : "1.1.3",
-    "uglify-js"   : "1.1.1",
-    "optimist"    : ">= 0.3.4",
-    "express"  : ">= 3.0",
-		"mysql"  : ">= 1.0"
+  "dependencies": {
+    "handlebars": ">= 1.x",
+    "stylus": ">= 0.22.1",
+    "coffee-script": "1.1.3",
+    "uglify-js": "1.1.1",
+    "optimist": ">= 0.3.4",
+    "express": ">= 3.0",
+    "mysql": ">= 1.0",
+    "socket.io": ">= 0.9.x",
+    "hbs": ">= 2.0",
+    "ent": "0.0.5"
   }
 }

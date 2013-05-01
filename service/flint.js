@@ -4,6 +4,37 @@ __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); };
 __hasProp = {}.hasOwnProperty,
 __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
+Flint.Helpers = (function() {
+
+  function Helpers(handlebars) {
+    this.handlebars = handlebars;
+    this.handlebars.registerHelper('include', this.include);
+    this.handlebars.registerHelper('cache_buster', this.cache_buster);
+  }
+
+  Helpers.prototype.cache_buster = function() {
+    return Math.ceil(Math.random() * 10000);
+  };
+
+  Helpers.prototype.include = function(file, data) {
+    var content, decoded, ent, fs, hbs, path, template;
+    fs = require('fs');
+    path = require('path');
+    ent = require('ent');
+    hbs = require('hbs');
+    content = fs.readFileSync(path.resolve('app/views/' + file), 'utf8');
+    if (data) {
+      template = hbs.handlebars.compile(content);
+      content = template(data);
+    }
+    decoded = ent.decode(content);
+    return new hbs.handlebars.SafeString(decoded);
+  };
+
+  return Helpers;
+
+})();
+
 Flint.Model = (function() {
 
   Model.prototype.key = 'id';
@@ -83,12 +114,12 @@ Flint.Model = (function() {
   };
 
   Model.prototype._create = function(props, callback) {
-    var validated;
+    var validate;
     if (props) this.attributes = this.extend(this.attributes, props);
     delete this.attributes.id;
-    if (props && props.silent) {
-      validated = this.validate ? this.validate() : void 0;
-      if (!validated) {
+    if (!props || !props.silent) {
+      validate = this.validate();
+      if (typeof validate === 'undefined') {
         return this.__save(callback);
       } else if (callback) {
         return callback(null, validated);
@@ -107,7 +138,7 @@ Flint.Model = (function() {
     return this.responder.database.get(id, this.store, function(res, err) {
       if (err && callback) {
         return callback(null, err);
-      } else if (callback) {
+      } else {
         _this.set(res);
         if (callback) return callback(_this.attributes);
       }
@@ -115,14 +146,16 @@ Flint.Model = (function() {
   };
 
   Model.prototype._save = function(props, callback) {
+    var validate;
     if (props) this.attributes = this.extend(this.attributes, props);
-    if (props && props.silent) {
-      if (typeof this.validate() === void 0) {
+    if (!props || !props.silent) {
+      validate = this.validate();
+      if (typeof validate === 'undefined') {
         return this.__save(callback);
       } else if (callback) {
-        return callback(null, validated);
+        return callback(null, validate);
       }
-    } else if (callback) {
+    } else {
       return this.__save(callback);
     }
   };
@@ -361,9 +394,13 @@ Flint.Responder = (function() {
     this;
   }
 
-  Responder.prototype.before = function() {};
+  Responder.prototype.before = function() {
+    return true;
+  };
 
-  Responder.prototype.after = function() {};
+  Responder.prototype.after = function() {
+    return true;
+  };
 
   Responder.prototype.get = function(data, credentials, callback) {
     var Instance, model;
@@ -385,7 +422,6 @@ Flint.Responder = (function() {
 
   Responder.prototype.post = function(data, credentials, callback) {
     var Instance, model;
-    console.log('calling as post?');
     Instance = this.__get_model_instance();
     return model = new Instance(this, {
       store: this.default_store
