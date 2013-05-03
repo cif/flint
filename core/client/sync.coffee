@@ -1,6 +1,7 @@
 # this class reads model attributes and decides whether or not they should be stored locally
 class Sync
   
+  # listen for socket.io events
   listeners: {}
   
   # overrides backbone.sync
@@ -18,10 +19,10 @@ class Sync
     
   
   broadcast: (data) =>
-    if data.event
+    if data.event and @listeners[data.event] and @listeners[data.event].length > 0
       for to_call in @listeners[data.event]
         to_call(data)
-    else
+    else if !data.event
       console.log '[flint] server emitted socket data with no event attached:' if console and console.log
         
   # this method overrides backbone.sync

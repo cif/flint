@@ -12,14 +12,14 @@ argv = optimist
   .alias('s','server')
   .describe('s','Starts the express server on port specified by the configuration')
   .alias('w','watch')
-  .describe('w','Watches and compiles coffee, stylus, templates, dependencies and responders which interface with the server.')
+  .describe('w','Watches and recompiles your working application files.')
   .alias('q','quiet')
-  .describe('q','Watch modifier. Watches files but only outputs errors, change and compile messages are silenced')
+  .describe('q','Watches files but only outputs errors, other messages are silenced')
   .default('q', false)
   .alias('c','compile')
   .describe('c','Compiles coffee, stylus, handlebars, templates and dependencies')
-  .alias('d','deploy')
-  .describe('d','Packages and minifies all javascript into a single production target')
+  .alias('p','package')
+  .describe('p','Packages and minifies all javascript into a production target')
   .alias('f','file')
   .describe('f','Specify a configuration file to work with.')   
   .default('f','./flint.js')
@@ -49,7 +49,7 @@ try {
 
  }
   
- if(argv.compile || argv.watch || argv.deploy) {
+ if(argv.compile || argv.watch || argv.package) {
     
     // dependencies - alphabetical load order matters, unfortunately.
     depencency = {} 
@@ -122,9 +122,9 @@ try {
   
     }
     
-    if (argv.deploy) {
+    if (argv.package) {
       
-      // deploy all client side javascript to a single minified file.
+      // package all client side javascript to a single minified file.
       compressor = require('./compressor');
       dest = base + flint.config.deploy_javascript_to
 			dest_dep = base + flint.config.deploy_dependencies_to
@@ -201,7 +201,7 @@ try {
      coffee_maker.out = client_dest
      coffee_maker.build = true
      coffee_maker.template_engine = false
-		 coffee_maker.minify = true
+		 //coffee_maker.minify = true
      brewer.configure(coffee_maker)
      brewer.compile()
      
@@ -220,7 +220,7 @@ try {
   }
   
   // if nothing was specified, ofter some guidance
-  if(!argv.build && !argv.compile && !argv.watch && !argv.server && !argv.deploy && !argv.new && !argv.generate){
+  if(!argv.build && !argv.compile && !argv.watch && !argv.server && !argv.package && !argv.new && !argv.generate){
   
     console.log(optimist.help())
   

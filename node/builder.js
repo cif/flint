@@ -30,6 +30,7 @@ cmd = require('child_process').exec;
       
 			// remove all the docs stuff
 			cmd('rm -rf ' + dir + '/app/responders/docs.coffee')
+			cmd('rm -rf ' + dir + '/public/images/flow_diagram.png')
 			cmd('rm -rf ' + dir + '/app/stylus/docs.styl')
 			cmd('rm -rf ' + dir + '/app/views/docs/')
 			

@@ -500,3 +500,63 @@ Flint.Responder = (function() {
 })();
 
 exports.Flint = Flint
+
+models = {}
+controllers = {}
+
+__bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+__hasProp = {}.hasOwnProperty,
+__extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+models.Object = (function() {
+
+  __extends(Object, Flint.Model);
+
+  function Object() {
+    Object.__super__.constructor.apply(this, arguments);
+  }
+
+  Object.prototype.store = 'objects';
+
+  return Object;
+
+})();
+
+models.Widget = (function() {
+
+  __extends(Widget, Flint.Model);
+
+  function Widget() {
+    Widget.__super__.constructor.apply(this, arguments);
+  }
+
+  Widget.prototype.store = 'widgets';
+
+  return Widget;
+
+})();
+
+controllers.Docs = (function() {
+
+  __extends(Docs, Flint.Responder);
+
+  function Docs() {
+    Docs.__super__.constructor.apply(this, arguments);
+  }
+
+  Docs.prototype.static = function(file, data, credentials, callback) {
+    var response;
+    if (file == null) file = 'index.html';
+    response = {
+      current: file,
+      template: 'docs/' + file
+    };
+    return callback(response);
+  };
+
+  return Docs;
+
+})();
+
+exports.models = models
+exports.controllers = controllers

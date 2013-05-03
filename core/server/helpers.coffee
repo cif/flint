@@ -9,11 +9,18 @@ class Helpers
     
     # this is our way around the need to register partials
     @handlebars.registerHelper 'include', @include
-    @handlebars.registerHelper 'cache_buster', @cache_buster
     
+    @handlebars.registerHelper 'cache_buster', @cache_buster
+    @handlebars.registerHelper 'eq', @eq
   
   cache_buster: ->
     Math.ceil(Math.random() * 10000)
+  
+  eq: (value, test, options) ->
+    if value is test
+      return options.fn(this)
+    else if options.inverse
+      return options.inverse(this)
     
   include: (file, data) =>
     fs = require 'fs'

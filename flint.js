@@ -1,16 +1,18 @@
-
 // flint configuration
 
 exports.config = {
   
-  
-// - routes --------------------------------
+	// - routes + database --------------------------------
 
-  // these are in case your application kicks it old school a lil bit. 
-  // remember to restart the server when you add new routes!
+  // in case your application kicks it old school a bit. 
+  // remember to restart the server when you add new routes.
 	routes: {
-		// example - '/users/profile/:username?' : 'Users.profile'
-		// documentation
+		
+		// example 
+		// '/users/profile/:username?' : 'Users.profile'
+		
+		
+		// documentation (delete this. it will be broken on new apps)
 		'/docs/:file?' : 'Docs.static'
 	
 	},
@@ -23,10 +25,8 @@ exports.config = {
     password: 'flint!',
     database: 'flint'
   },
-  
-  // compiler preferences : 
    
-  //  - client --------------------------------
+  //  - client side compilers --------------------------------
   
   // dependencies
   compile_dependencies_to: 'public/javascript/dependencies.js',
@@ -49,24 +49,23 @@ exports.config = {
   template_engine: 'Handlebars',
   
 	
-  //  - server --------------------------------
+  //  - server options --------------------------------
   
 	// coffeescript 
   compile_resources_to: 'service/responders.js',
   server_resources: [
-    {'models' : 'app/coffee/models'},
-    {'controllers' : 'app/responders'},
+    {'models' : 'app/coffee/models'},  // warning! changing these namespaces may cause the server to break. 
+    {'controllers' : 'app/responders'}, // you are however, welcome to add more directories if you wish
   ],
   
   // ports for server to run on
   develop_port: 3000,
   server_port: 80,
-  // socket_port: 8080,  - ignored for now, autodetect is pretty good.
   ssl_port: 443,
+  // socket_port: 8080, - ignored for now, autodetect is pretty good.
   
   
-  // -------------------------------- used for building core classes into the flint.js depencency / service
-   
+  // -------------------------------- used for building core classes into the flint.js depencency / service 
   client_build_target: 'app/vendor/flint.js',
   server_build_target: 'service/flint.js'
   

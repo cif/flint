@@ -41,22 +41,45 @@ a:active {
   margin-top: 23px;
   position: fixed;
 }
+.docs ul a.current {
+  color: #e39737;
+}
 .docs .copy {
   width: 65%;
   float: left;
-  margin-left: 20%;
+  margin: 20px 0 30px 25%;
+  line-height: 23px;
+}
+.docs .copy h1 {
+  padding: 0;
+  margin: 20px 0 0 0;
 }
 .docs .copy h2 {
   line-height: 35px;
 }
+.docs .copy h2.intro {
+  display: block;
+  padding: 10px 0;
+  border: 1px solid rgba(0,0,0,0.3);
+  border-width: 1px 0;
+}
+.docs .copy h3 {
+  padding: 10px 0 0 0;
+}
 .docs .copy pre {
   display: block;
   margin: 0;
-  padding: 20px 10px 10px 0;
+  padding: 17px 0 0 0;
   background: #fff;
   -webkit-border-radius: 10px;
   -moz-border-radius: 10px;
   border-radius: 10px;
+}
+.docs .copy img {
+  max-width: 100%;
+}
+.docs .copy ol {
+  padding: 10px 0 0 35px;
 }
 .docs .copy ol li {
   margin: 10px 0;

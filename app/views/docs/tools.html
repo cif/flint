@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+<title>Flint Docs! Build Tools</title>
+<link rel="stylesheet" href="/public/application.css" />
+<link rel="apple-touch-icon" href="/public/apple-touch-icon.png" />
+<link rel="shortcut icon" href="/favicon.ico" />
+</head>
+<body>
+<div class="docs">
+  {{include 'docs/_menu.html' this}}
+  <div class="copy">
+    <h1>Flint Build Tools</h1>
+    <h3>Overview</h3>
+    <p>The Flint build tools take care of quite a few tasks making it easy to build your application without the need to restart the server or recompile files while you're working. </p>
+    <p>The following diagram illustrates how the basic components work to create an application:</p>
+    <img src="/images/flow-diagram.png" />
+    <p>The <a href="/docs/classes.html">core classes</a> are highlighted in blue. There are <strong>three primary languages</strong> used to construct Flint applications. 
+      You should familiarize yourself with these languages before getting started:</p>
+    <ol>
+      <li><a href="http://coffeescript.org">Coffeescript</a> is a language that compiles into Javascript with all sorts of syntax sugar.</li>
+      <li><a href="http://handlebarsjs.com/">Handlebars</a> is a "logicless" template language that keeps your templates clean.</li>
+      <li><a href="http://learnboost.github.io/stylus/">Stylus</a> (not in the diagram) is a CSS compiler like LESS, SASS etc.</li>
+    </ol>
+    <br />
+    <h3>Using The Command Line Tool</h3>
+    <p>The command line tool will print a manual page by simply entering the <strong>flint</strong> command in your terminal. Here are the arguments explained in detail:<p>
+    <h4>--new (-n)</h4>  
+    <p>The new command creates a new Flint application. To start a new app type:</p>
+    <pre>
+  flint -n todos
+    </pre>
+    <p>Before you use the rest of the command line tools <strong>cd</strong> into your new application: </p>
+    <pre>
+  cd todos
+    </pre>
+    <h4>--server (-s)</h4>  
+    <p>The server command spins up an <a href="http://http://expressjs.com/">express server</a> instance which you can view in your browser at <a href="http://localhost:3000" target="_blank">http://localhost:3000</a>
+    <pre>
+  flint -s
+    </pre>
+    <h4>--watch (-w)</h4>  
+    <p>Watches all your application files and recompiles when changes are detected. This avoids having to recompile to see the result of your changes.</p>
+    <pre>
+  flint -w
+    </pre>
+    <p style="font-size:11px"><strong>Note:</strong> To watch changes to your Responder classes, you will also need to pass --server (-s) to the flint command.</p>
+    <h4>--quiet (-q)</h4>  
+    <p>This is a watch modifier which tells flint to only print compile errors to the console. By default, console messages are sent each time a change is detected to a file.</p>
+    <pre>
+  flint -wq
+    </pre>
+    <h4>--compile (-c)</h4>  
+    <p>Compiles client side files to their respective outputs once and completes without watching. Useful for quick changes to copy that may not require testing/viewing.</p>
+    <pre>
+  flint -c
+    </pre>
+    <h4>--package (-p)</h4>  
+    <p>Packages and compresses the "nice" compiled output into a single minified build target, "production.js" by default.</p>
+    <pre>
+  flint -p
+    </pre>
+    <h4>--file (-f) [file]</h4>  
+    <p>This argument allows you to specify a configuration file relative to the current working directory to be used in place of the flint.js file. 
+      This is very handy for sharing application code and repositories between two desired outputs. (e.g. desktop vs. mobile)</p>
+    <pre>
+  flint -wsf flint-mobile-verion.js
+    </pre>
+    <h4>--build (-b)</h4>  
+    <p>This command takes the core flint libraries and recompiles them into their targets. The only time this is used is when updating
+      flint and want to use new core functionality.</p>
+    <pre>
+  flint -b
+    </pre>
+    <br />
+    <h2>That's it for the Build Tools! Let's move on to <a href="/docs/structure.html">application structure.</a></h2>
+    <br /><br />
+  </div>    
+</div>
+</body>
+</html>

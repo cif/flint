@@ -54,9 +54,10 @@ class Responder
           callback(null, err)
         else
           # emit a default created:store event out to socket
+          res = {}
           res.emit = 
-            event: 'created:' + @default_store
-            data: data
+            event: 'created:' + model.store
+            data: model.attributes
           callback(res)
     
   put: (data, credentials, callback) =>
@@ -67,9 +68,10 @@ class Responder
           callback(null, err)
         else
           # emit a default created:store event out to socket
-          res.emit = 
-            event: 'modified:' + @default_store
-            data: data
+          res = {}
+          res.emit =
+            event: 'modified:' + model.store
+            data: model.attributes
           callback(res)
     
   delete: (data, credentials, callback) =>

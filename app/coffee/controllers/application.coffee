@@ -24,6 +24,7 @@ class Application extends Backbone.Router
     @controllers  = []
     @widgets = new controllers.Widgets @
     
+    
     # console messages - note the simiple test case that preserves the location of output in application.js
     console.log '[flint] Application initialized.' if console and console.log
     

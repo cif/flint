@@ -16,6 +16,7 @@ path = require('path');
     app.get('/css/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/css/' + req.params.file)) });
     app.get('/javascript/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/javascript/' + req.params.file)) }); 
     app.get('/fonts/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/fonts/' + req.params.file)) });
+		app.get('/images/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/images/' + req.params.file)) });
     app.get('/public/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/' + req.params.file)) });
 		app.get('/favicon.ico', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/favicon.ico')) });
     
@@ -35,19 +36,25 @@ path = require('path');
 	
 		
   }
-
 	
   var sendFinalResponse = function(res, response, error){
 			
 			if(!error){
        	
-					// if there is anything to emit to io, send it along.
-					if(response.emit){ sock.sockets.emit('data', response.emit); }
+					if(response.emit){ 
+						
+						// if our response is told emit to io, send it along.
+						sock.sockets.emit('data', response.emit); 
+						
+						// revert the response to the data emitted (prevent circular reference).
+						response = response.emit.data;
+						
+					}
 					
 					// check for denied access.
 					if (response.denied){
 						
-						res.set('Content-Type','text/plain')
+						res.set('Content-Type','text/plain');
           	res.send('Access denied');
           	res.send(403);
 					
@@ -62,7 +69,7 @@ path = require('path');
 					
 						// return the json back to our application
 		        res.set('Content-Type','application/json');
-		     		res.send(response);
+					  res.send(response);
          
 					}
 				
@@ -141,7 +148,7 @@ path = require('path');
       // instantantiate the controller
       Controller = new responders.controllers[controller](config);
       
-    } else if(Flint.Responder[method_to_call]) {
+    } else if(Flint.Responder.prototype[method_to_call]) {
       
 			// use the generic Flint Responder fallback instead
 			Controller = new Flint.Responder(config);
@@ -154,6 +161,9 @@ path = require('path');
 		
 		// provide request data to the method we are about to call
     data = getRequestData(req);
+		
+		console.log(data);
+		
 		credentials = getRequestCredentials(req);
 		
 		// if we have additional request parts, assume the first one is an id, per common REST API uris. 
