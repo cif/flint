@@ -2,7 +2,7 @@
   "author": "Ben Ipsen <email@benipsen.com>",
   "name": "flint",
   "description": "A Node Based Development Framework",
-  "version": "0.0.88",
+  "version": "0.0.89",
   "repository": {
     "type": "git",
     "url": "http://github.com/cif/flint"

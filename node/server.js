@@ -20,10 +20,13 @@ path = require('path');
     app.get('/public/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/' + req.params.file)) });
 		app.get('/favicon.ico', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/favicon.ico')) });
     
-    // serves public index, 
-		// flint.js configuration is passed as handlebars data 
-    app.get('/', function(req, res){  res.render('index.html', {flint:config}); });
-
+    
+		if(!routes['/']){ // ... if a default path hasn't been established render the index.
+			 
+			app.get('/', function(req, res){  res.render('index.html', {flint:config}); });
+		
+		}
+		
 		// setup routes specified by routes.js
 		for(route in routes){
 			
@@ -37,6 +40,7 @@ path = require('path');
 		
   }
 	
+	// sends the final response from the responder (controller) method
   var sendFinalResponse = function(res, response, error){
 			
 			if(!error){
@@ -84,17 +88,13 @@ path = require('path');
         }
 
   }
-
+	
+	// relays the REST API request
 	var respondToAppRequest = function(req, res){
-        
-       uri_parts = req.url.split('/');
-       uri_parts.shift();
        
 			 // asyncronous JSON responder 
-       getApplicationResponse(req, uri_parts, function(response, error){
-         
+       getApplicationResponse(req, res, function(response, error){
          sendFinalResponse(res, response, error);
-       
        });
        
    };
@@ -107,11 +107,12 @@ path = require('path');
 		for(route in config.routes){
 			
 			// replace any string arguments with wildcards for matching the method we are trying to call.
-			wild = new RegExp(route.replace(/\:(.*)\?/g,'(.*)'));
+			regex_string = '^' + route.replace(/\:(.*)/g,'(.*)') + '$'
+			wild = new RegExp(regex_string);
 			if(url.match(wild)){
 				
 				matched = config.routes[route];
-				getCustomResponse(req, matched, function(response, error){
+				getCustomResponse(req, res, matched, function(response, error){
 					
 					 sendFinalResponse(res, response, error);
 					
@@ -119,9 +120,7 @@ path = require('path');
 				
 				// no need to keep looking.
 				return true;
-				
 		  }  
-			
 		}
 		
 		// unable to match a route
@@ -130,9 +129,13 @@ path = require('path');
 	}
   
 	// responds to application requests
-  var getApplicationResponse = function(req, uri_parts, callback){
+  var getApplicationResponse = function(req, res, callback){
     
-    // get controller class and the method to call
+		// parse parts for uri mapping
+		uri_parts = req.url.split('/');
+    uri_parts.shift();
+
+		// get controller class and the method to call
 		inflector = require('./inflector');
     responders = require(path.resolve(config.base + 'service/responders'));
 		controller = uri_parts[0].camelize()
@@ -160,11 +163,8 @@ path = require('path');
 		}
 		
 		// provide request data to the method we are about to call
-    data = getRequestData(req);
-		
-		console.log(data);
-		
-		credentials = getRequestCredentials(req);
+    data = getRequestData(req, res);
+		credentials = getRequestCredentials(req, res);
 		
 		// if we have additional request parts, assume the first one is an id, per common REST API uris. 
 		if(uri_parts[1]) data.id = uri_parts[1];
@@ -210,67 +210,63 @@ path = require('path');
       
   };
 
-  var getCustomResponse = function(req, responder_method, callback){
+  var getCustomResponse = function(req, res, responder_method, callback){
 			
-			// get the controller 
-			responders = require(path.resolve(config.base + 'service/responders'));
-			method = responder_method.split('.');
-			controller = method[0];
+		// get the controller 
+		responders = require(path.resolve(config.base + 'service/responders'));
+		method = responder_method.split('.');
+		controller = method[0];
+		
+		if(responders.controllers[controller]){
+     
+     	// instantantiate the controller
+     	Controller = new responders.controllers[controller](config);
+     	
+			method_to_call = method[1];
 			
-			if(responders.controllers[controller]){
+			// todo
+			data = getRequestData(req, res);
+			credentials = getRequestCredentials(req, res);
+			
+			Controller.before(data, credentials);
+				
+			if(Controller[method_to_call]) {
       
-      	// instantantiate the controller
-      	Controller = new responders.controllers[controller](config);
-      	
-				method_to_call = method[1];
-				
-				// todo
-				data = getRequestData(req);
-				credentials = getRequestCredentials(req);
-				
-				Controller.before(data, credentials);
-					
-				if(Controller[method_to_call]) {
-       
-					 // call the request_method on the controller
-		       return_callback = function(response, error){
-         
-		         //wrap up the controler
-		         Controller.after(data, credentials);
-         
-		         // callback to deliver the response
-		         return callback(response, error);
-       	 
-		       };
-					 
-					 // get the arguments to apply in an array
-					 arguments = [];
-					 for(arg in req.params){
-							arguments.push(req.params[arg]);
-					 }
-					 arguments.push(data, credentials, return_callback);
-					 
-					 // call the controller
-					 Controller[method_to_call].apply(null, arguments);
-					 	
-			
-				 } else {
-				
-		       return callback(null, 'Missing  method ' + method_to_call + ' on responder class ' + controller);
+				 // call the request_method on the controller
+	       return_callback = function(response, error){
+        
+	         //wrap up the controler
+	         Controller.after(data, credentials);
+        
+	         // callback to deliver the response
+	         return callback(response, error);
+      	 
+	       };
+				 
+				 // get the arguments to apply in an array
+				 arguments = [];
+				 for(arg in req.params){
+						arguments.push(req.params[arg]);
+				 }
+				 arguments.push(data, credentials, return_callback);
+				 
+				 // call the controller
+				 Controller[method_to_call].apply(null, arguments);
+				 	
+		
+			 } else {  // ... missing method on the controller
+	       return callback(null, 'Missing  method ' + method_to_call + ' on responder class ' + controller);
+	     }	
 
-		     }	
-
-      
-   		} else {
-			
-					return callback(null, 'Missing responder class ' + controller);
-			 
-			}
-			
+     
+  		} else {   // ... missing the responder (controller) class.
+				return callback(null, 'Missing responder class ' + controller);
+		}
+		
 	
 	};
 	
-	var getRequestData = function(req){
+	var getRequestData = function(req, res){
 			
 		data = {};
 		
@@ -279,7 +275,7 @@ path = require('path');
 			data[obj] = req.body[obj];
 		}
 		
-		// extend query paramenters but dont override
+		// extend query paramenters but dont override post data
 		for(obj in req.query){
 			if(!data.hasOwnProperty(obj)){
 				 data[obj] = req.query[obj];
@@ -289,19 +285,25 @@ path = require('path');
 		
 	}
 	
-	
-	var getRequestCredentials = function(req){
+	var getRequestCredentials = function(req, res){
 		
-		// todo!
-		return {};
+		// push all request cookie values into the credentials
+		credentials = {};
+		for(obj in req.signedCookies){
+			credentials[obj] = req.signedCookies[obj];
+		}
+		
+		// res to the credentials object for setting cookies in responders (controllers)
+		credentials.res = res; 
+		return credentials;
 		
 	}
   
 	// this method is called when watching for changes (dev mode)
   var respondersChanged = function(){
       
-      // clear the responders.js from require cache
-      delete require.cache[path.resolve(config.base + 'service/responders.js')]
+    // clear the responders.js from require cache
+    delete require.cache[path.resolve(config.base + 'service/responders.js')]
     
   };
   
@@ -322,16 +324,19 @@ path = require('path');
 		// register handlebars are our wonderful templating engine
 		hbs = require('hbs');
 		
-		// register Flint.Helpers
+		// register Flint.Helpers for server side app/views
 		flint = require(path.resolve(config.base + 'service/flint'));
 		helpers = new Flint.Helpers(hbs);
 		helpers.config = config;
+		
 		app.set('view engine', 'html');
 		app.set('views', path.resolve(config.base + 'app/views/'));
 		app.engine('html', hbs.__express);
 		
-		// make sure we are parsing requests
+		// make sure we are parsing requests and keeping active sessions
 		app.use(express.bodyParser());
+		app.use(express.cookieParser('secret!'));
+		app.use(express.session({secret: config.cookie_secret}));
 		
 		// setup the routes
 		setupRoutes(config.routes);

@@ -17,6 +17,9 @@ exports.config = {
 	
 	},
 	
+	// used for signing cookies in your application. CHANGE IT!
+	cookie_secret: '#ASUPERSECRETVALUETHATYOUSHOULDCHANGE!',
+	
 	// database configuration
   db: {
     engine: 'mysql',

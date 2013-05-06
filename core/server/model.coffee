@@ -91,7 +91,7 @@ class Model
       
     # check to see if we should validate
     if !props or !props.silent
-      validate = @validate()
+      validate = @validate(props)
       if typeof validate is 'undefined'
         @__save(callback)
       else if callback
@@ -120,7 +120,7 @@ class Model
     
     # check to see if we should validate
     if !props or !props.silent
-      validate = @validate()
+      validate = @validate(props)
       if typeof validate is 'undefined'
         @__save(callback)
       else if callback
