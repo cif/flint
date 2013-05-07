@@ -13,12 +13,12 @@ path = require('path');
   var setupRoutes = function(routes){
     
     // serve public assets the app needs for GUI - this is old, express.static is probably better?
-    app.get('/css/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/css/' + req.params.file)) });
-    app.get('/javascript/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/javascript/' + req.params.file)) }); 
-    app.get('/fonts/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/fonts/' + req.params.file)) });
-		app.get('/images/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/images/' + req.params.file)) });
-    app.get('/public/:file?', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/' + req.params.file)) });
-		app.get('/favicon.ico', function(req, res){ res.sendfile(path.resolve(__dirname + '/../public/favicon.ico')) });
+    app.get('/css/:file?', function(req, res){ res.sendfile(path.resolve(config.base + 'public/css/' + req.params.file)) });
+    app.get('/javascript/:file?', function(req, res){ res.sendfile(path.resolve(config.base + 'public/javascript/' + req.params.file)) }); 
+    app.get('/fonts/:file?', function(req, res){ res.sendfile(path.resolve(config.base + 'public/fonts/' + req.params.file)) });
+		app.get('/images/:file?', function(req, res){ res.sendfile(path.resolve(config.base + '/public/images/' + req.params.file)) });
+    app.get('/public/:file?', function(req, res){ res.sendfile(path.resolve(config.base + 'public/' + req.params.file)) });
+		app.get('/favicon.ico', function(req, res){ res.sendfile(path.resolve(config.base + 'public/favicon.ico')) });
     
     
 		if(!routes['/']){ // ... if a default path hasn't been established render the index.
@@ -38,64 +38,68 @@ path = require('path');
     app.all('*', respondToAppRequest);
 	
 		
-  }
+  };
 	
 	// sends the final response from the responder (controller) method
   var sendFinalResponse = function(res, response, error){
 			
-			if(!error){
-       	
-					if(response.emit){ 
-						
-						// if our response is told emit to io, send it along.
-						sock.sockets.emit('data', response.emit); 
-						
-						// revert the response to the data emitted (prevent circular reference).
-						response = response.emit.data;
-						
-					}
-					
-					// check for denied access.
-					if (response.denied){
-						
-						res.set('Content-Type','text/plain');
-          	res.send('Access denied');
-          	res.send(403);
-					
-					} else if (response.template) {
-						
-						// this response wants to render a real view.
-						response.flint = config;
-						res.render(response.template, response);
-						
-						
-					} else {
-					
-						// return the json back to our application
-		        res.set('Content-Type','application/json');
-					  res.send(response);
-         
-					}
+	  if(!error){
+     	
+			if(response.emit){ 
 				
+				// if our response is told emit to io, send it along.
+				sock.sockets.emit('data', response.emit); 
 				
-        } else {
-        
-          // return an error
-          res.set('Content-Type','text/plain')
-          res.send('Flint.js server error:' + "\n" + error)
-          res.send(500)
-				 
-        }
+				// revert the response to the data emitted (prevent circular reference).
+				response = response.emit.data;
+				
+			}
+			
+			// check for denied access.
+			if (response.denied){
+				
+				res.set('Content-Type','text/plain');
+        res.status(403);
+				res.send('Access denied');
+        	
+			// response wants to render a server view.
+			} else if (response.template) {
+				
+				response.flint = config;
+				res.status(200);
+				res.render(response.template, response);
+				
+			
+			// return default REST json back to our application	
+			} else {
+			
+				res.set('Content-Type','application/json');
+			  res.status(200);
+				res.send(response);
+       
+			}
+		
+		// return  error as a string with 500 status
+    } else {
+     
+			
+       res.set('Content-Type','text/plain');
+       res.status(500);
+			 res.send('[flint] 500 server error:' + "\n" + error.toString());
+      	
+    }
 
-  }
+  };
 	
-	// relays the REST API request
+	// simply relays the REST API request to the parsing method and adds response to final callback
 	var respondToAppRequest = function(req, res){
        
-			 // asyncronous JSON responder 
-       getApplicationResponse(req, res, function(response, error){
-         sendFinalResponse(res, response, error);
-       });
+	  // asyncronous JSON responder 
+    getApplicationResponse(req, res, function(response, error){
+      
+			sendFinalResponse(res, response, error);
+      
+		});
        
    };
 
@@ -106,7 +110,7 @@ path = require('path');
 		url = req.url;
 		for(route in config.routes){
 			
-			// replace any string arguments with wildcards for matching the method we are trying to call.
+			// replace the string arguments with wildcards for matching the method we are trying to call.
 			regex_string = '^' + route.replace(/\:(.*)/g,'(.*)') + '$'
 			wild = new RegExp(regex_string);
 			if(url.match(wild)){
@@ -118,17 +122,17 @@ path = require('path');
 					
 				});
 				
-				// no need to keep looking.
 				return true;
-		  }  
+				
+		  } 
 		}
 		
-		// unable to match a route
+		// unable to match a route - should never get here but not sure how solid that regex is. no splats yet.
 		sendFinalResponse(res, null, 'Not Found: Unable to match a route to this request.')
 			
 	}
   
-	// responds to application requests
+	// responds to default API / application requests
   var getApplicationResponse = function(req, res, callback){
     
 		// parse parts for uri mapping
@@ -138,11 +142,11 @@ path = require('path');
 		// get controller class and the method to call
 		inflector = require('./inflector');
     responders = require(path.resolve(config.base + 'service/responders'));
-		controller = uri_parts[0].camelize()
-    request_method = req.method.toLowerCase()
+		controller = uri_parts[0].camelize();
+    request_method = req.method.toLowerCase();
     method_to_call = uri_parts[1] ? uri_parts[1] : false;
     
-    // if the method doesn't exist, default to the request method (get, post, put, delete etc.)
+		// if the method doesn't exist, default to the request method (get, post, put, delete etc.)
     if(!method_to_call) method_to_call = request_method;
     
     // create the controller instance (make sure it and the method exist)
@@ -166,7 +170,8 @@ path = require('path');
     data = getRequestData(req, res);
 		credentials = getRequestCredentials(req, res);
 		
-		// if we have additional request parts, assume the first one is an id, per common REST API uris. 
+		// if we have additional request parts, assume the first one is an id
+		// used for automatic REST API uri pattern. 
 		if(uri_parts[1]) data.id = uri_parts[1];
 		
 		// call before on controller class
@@ -181,35 +186,34 @@ path = require('path');
        // call the controller method
        Controller[method_to_call](data, credentials, function(response, error){
          
-         //wrap up the controler
          Controller.after(data, credentials);
-         
-         // callback to deliver the response
          return callback(response, error);
        	 
        });
-       
+     
+		//  as of right now, this case never fails as will always locate 
+		//  get,post,put,delete "Automatic API" methods provided on the 
+		// core Responder class. API errors are still returned normally.
      } else if(Controller[request_method]) {
        
 			 // call the request_method on the controller
        Controller[request_method](data, credentials, function(response, error){
          
-         //wrap up the controler
          Controller.after(data, credentials);
-         
-         // callback to deliver the response
          return callback(response, error);
        	 
        });
 			
 		 } else {
-				
+			
+			 // almost never makes it here. "too automatic to fail."	
        return callback(null, 'Missing  method ' + method_to_call + ' on responder class ' + controller);
 
      }
       
   };
 
+	// method responds to requests that match routes set in flint.js
   var getCustomResponse = function(req, res, responder_method, callback){
 			
 		// get the controller 
@@ -224,7 +228,7 @@ path = require('path');
      	
 			method_to_call = method[1];
 			
-			// todo
+			// get request data and credentials
 			data = getRequestData(req, res);
 			credentials = getRequestCredentials(req, res);
 			
@@ -255,13 +259,17 @@ path = require('path');
 				 	
 		
 			 } else {  // ... missing method on the controller
-	       return callback(null, 'Missing  method ' + method_to_call + ' on responder class ' + controller);
-	     }	
+	     
+	  		return callback(null, 'Missing method ' + method_to_call + ' on responder class ' + controller);
+	     
+			 }	
 
      
   		} else {   // ... missing the responder (controller) class.
+				
 				return callback(null, 'Missing responder class ' + controller);
-		}
+			
+			}
 		
 	
 	};
@@ -281,19 +289,29 @@ path = require('path');
 				 data[obj] = req.query[obj];
 			}
 		}
+		
+		// extend the global configuration
+		for(obj in config){
+			if(!data.hasOwnProperty(obj)){
+				 data[obj] = config[obj];
+			}
+		}
+		
 		return data;
 		
 	}
 	
 	var getRequestCredentials = function(req, res){
 		
-		// push all request cookie values into the credentials
 		credentials = {};
+		
+		// push all request cookie values into the credentials
 		for(obj in req.signedCookies){
 			credentials[obj] = req.signedCookies[obj];
 		}
 		
-		// res to the credentials object for setting cookies in responders (controllers)
+		// add res object to the credentials for setting cookies in responders (controllers)
+		// hope was to simply provide a func reference, but it seems to need the whole object.
 		credentials.res = res; 
 		return credentials;
 		
@@ -329,6 +347,7 @@ path = require('path');
 		helpers = new Flint.Helpers(hbs);
 		helpers.config = config;
 		
+		// set our server side views to serve up handlebars
 		app.set('view engine', 'html');
 		app.set('views', path.resolve(config.base + 'app/views/'));
 		app.engine('html', hbs.__express);
@@ -342,11 +361,8 @@ path = require('path');
 		setupRoutes(config.routes);
 
 		// start the socket server
-		options = {
-			'log level' : 0
-		}
-    sock = io.listen(server, options);
-		sock.sockets.on('connection', function(client){ console.log('[flint] A client connected to socket.io.'); });
+    sock = io.listen(server, {'log level': 0});
+		sock.sockets.on('connection', function(client){ if(config.debug) console.log('[flint] A client connected to socket.io.'); });
     
 		// start the server 
     server.listen(port);

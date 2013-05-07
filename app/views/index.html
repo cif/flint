@@ -18,17 +18,7 @@
   <p><strong>Have Fun Building!</strong><br /><br /> &nbsp;&nbsp;&mdash; The Flint Crew</p>
 </div>
 <!-- END INTRO MARKUP  -->
-
-
-<script type="text/javascript" src="/socket.io/socket.io.js"> </script>
-{{#if flint.debug}}
-  <script type="text/javascript" src="/javascript/dependencies.js?{{cache_buster}}"> </script>
-  <script type="text/javascript" src="/javascript/templates.js?{{cache_buster}}"> </script>
-  <script type="text/javascript" src="/javascript/application.js?{{cache_buster}}"> </script>
-{{else}}
-  <script type="text/javascript" src="/javascript/production.js?{{cache_buster}}"> </script>
-{{/if}}  
-
+{{include '_scripts.html' this}}  
 <script type="text/javascript">
 	$(document).ready(function(){ app = new controllers.Application(); });
 </script>

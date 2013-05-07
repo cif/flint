@@ -33,18 +33,12 @@ controllers.Application = (function() {
   }
 
   Application.prototype.initialize = function() {
-    var _this = this;
     this.isTouch = navigator.userAgent.match(/(iPhone|iPod|iPad|Android|BlackBerry)/);
     this.isOnline = navigator.onLine;
     this.sync = new Flint.Sync;
-    this.sync.on('myevent', function(data) {
-      console.log('got data back from the app!');
-      return console.log(data);
-    });
     this.notifications = new Flint.Notifications(this);
     this.helpers = new views.Helpers;
     this.controllers = [];
-    this.widgets = new controllers.Widgets(this);
     if (console && console.log) console.log('[flint] Application initialized.');
     Backbone.history.start();
     return this;
@@ -110,6 +104,16 @@ models.Object = (function() {
   }
 
   Object.prototype.store = 'objects';
+
+  Object.prototype.fields = [
+    {
+      name: 'name',
+      type: 'varchar(255)'
+    }, {
+      name: 'type',
+      type: 'int(1)'
+    }
+  ];
 
   return Object;
 

@@ -14,7 +14,7 @@ class Mysql
     
     # parse through the where option formats
     if options.where
-      if options.where instanceof String
+      if typeof options.where is 'string'
         query += ' WHERE ' + options.where
       else
         conditions = []
@@ -25,7 +25,7 @@ class Mysql
            else
             conditions.push field + '=' + @connection.escape(value)
     
-      query += ' WHERE ' + conditions.join(' AND ')
+        query += ' WHERE ' + conditions.join(' AND ')
     
     if options.order
       query += ' ORDER BY ' + options.order
@@ -34,13 +34,16 @@ class Mysql
     
     @connection.query query, (err, rows, fields) ->
       if err and callback
-        callback(null, err)
+        callback null, err
       else
         results = []
-        for row in rows
-          results.push row
-        if callback
-          callback(results)
+        if rows.length is 0
+          callback false  
+        else
+          for row in rows
+            results.push row
+          if callback
+            callback results
     
   # get a single record by id  
   get: (id, store, callback) =>
@@ -48,18 +51,20 @@ class Mysql
       if err and callback
         callback(null, err)
       else if callback
-          callback(rows[0])
+        callback(rows[0])
     
   # insert new records
   insert: (object, store, callback) =>
     
     # generate an id
-    object.id = @uuid()
+    object[object.key] = @uuid()
+    delete object.key
+    
     # store the object
     @connection.query 'INSERT INTO ' + store + ' SET ?', object, (err, res) ->
       if err
-        throw err
-      if callback
+        callback null, err
+      else if callback
         res.id = object.id
         callback(res, err)
   
@@ -67,17 +72,25 @@ class Mysql
   update: (object, store, callback) =>
     
     # avoid setting the id
-    id = object.id
-    delete object.id
+    id = object[object.key] 
+    key = object.key
+    delete object[object.key]
+    delete object.key
     
     # udpate
-    @connection.query 'UPDATE ' + store + ' SET ? WHERE id = ' + @connection.escape(id), object, (err, res) ->
+    @connection.query 'UPDATE ' + store + ' SET ? WHERE ' + key + ' = ' + @connection.escape(id), object, (err, res) ->
       if callback
         callback(res, err)
   
   # delete a record
-  destroy: (id, store, callback) =>
-    @connection.query 'DELETE FROM ' + store + ' WHERE id = ' + @connection.escape(id), (err, res) ->
+  destroy: (object, store, callback) =>
+    
+    id = object[object.key] 
+    key = object.key
+    delete object[object.key]
+    delete object.key
+    
+    @connection.query 'DELETE FROM ' + store + ' WHERE ' + key + ' = ' + @connection.escape(id), (err, res) ->
       if callback
         callback(res, err)
   
@@ -100,7 +113,9 @@ class Mysql
         callback(null, err)
       else
         for row in rows
-          valid.push row.Field
+          valid.push 
+            name: row.Field
+            type: row.Type
         if callback
           callback(valid)
   

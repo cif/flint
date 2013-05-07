@@ -1,8 +1,8 @@
 {
   "author": "Ben Ipsen <email@benipsen.com>",
   "name": "flint",
-  "description": "A Node Based Development Framework",
-  "version": "0.0.89",
+  "description": "A Modern Application Development Framework",
+  "version": "0.0.9",
   "repository": {
     "type": "git",
     "url": "http://github.com/cif/flint"
@@ -27,6 +27,7 @@
     "mysql": ">= 1.0",
     "socket.io": ">= 0.9.x",
     "hbs": ">= 2.0",
-    "ent": "0.0.5"
+    "ent": "0.0.5",
+    "emailjs": ">= 0.3.4"
   }
 }

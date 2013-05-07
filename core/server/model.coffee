@@ -8,7 +8,7 @@ class Model
   # default key is assumed to be called id.
   key: 'id'
   
-  # holds model attributes
+  # holds model attributes for server side impl.
   attributes: { }
     
   # takes the reponder and an optional store if specified  
@@ -25,15 +25,8 @@ class Model
     if @defaults
       @attributes = @defaults
     
-    # if the responder engine is mysql based, get fields out of the store 
-    if @responder.database and @responder.database.isSql
-      @responder.database.describe @store, (fields) =>
-        @storable_fields = fields
-        callback @
-    else
-      callback @
+    this
     
-  
   # simple set and get methods
   get: (prop) =>
     @attributes[prop]
@@ -58,7 +51,19 @@ class Model
   # callback (res, err) to handle the result
   find: (options, callback) =>
     @_find(options, callback)
-      
+  
+  # first() returns the first result from a query
+  # options - object which contains information about the query
+  # callback (res, err) to handle the result
+  first: (options, callback) =>
+    @_find options, (res, err) =>
+      if err
+        callback null, err
+      else if res
+        callback res[0]
+      else
+        callback false
+        
   # read()
   # id - the id to get
   # callback (res, err) handles results
@@ -87,7 +92,7 @@ class Model
       @attributes = @extend(@attributes, props)
     
     # delete the id attribute to ensure a new instance 
-    delete @attributes.id
+    delete @attributes[@key]
       
     # check to see if we should validate
     if !props or !props.silent
@@ -107,13 +112,14 @@ class Model
     @responder.database.get id, @store, (res, err) =>
       if err and callback
         callback(null, err)
-      else
+      else if res
         @set res
         if callback
           callback @attributes
+      else
+          callback false
           
   _save:( props, callback ) =>
-    
     # extend any additional properties passed to save
     if props
       @attributes = @extend(@attributes, props)
@@ -129,46 +135,67 @@ class Model
       @__save(callback)
     
   __save: (callback) =>
-    if @get 'id'
-      @responder.database.update @clean(), @store, (res, err) =>
-        if err and callback
-          callback(null, err)
-        else if callback
-          callback @
-    else
-      @responder.database.insert @clean(), @store, (res, err) =>
-        if err and callback
-          callback(null, err)
-        else if callback
-          @set 'id', res.id
-          callback @
-  
-  _destroy: (id, callback) =>
-    if !callback
-      throw new Error 'Missing callback function on Flint.Model._destroy'
-    if !id
-      id = @get('id')
-    if id  
-      @responder.database.destroy id, @store, (res, err) ->
+    if @get(@key)
+      # assume if key is present we are updating
+      @clean (cleaned) =>
+        cleaned.key = @key
+        @responder.database.update cleaned, @store, (res, err) =>
           if err and callback
             callback(null, err)
           else if callback
-            callback @
+            callback @attributes
+    else
+      @clean (cleaned) =>
+        # automatic created_on storage
+        if !cleaned.created_on
+          cleaned.created_on = @datetime()
+        cleaned.key = @key  
+        @responder.database.insert cleaned, @store, (res, err) =>
+          if err and callback
+            callback(null, err)
+          else if callback
+            @set 'id', res.id
+            callback @attributes
+  
+  _destroy: (id, callback) =>
+    if @get(@key) 
+      @attributes.key = @key
+      @responder.database.destroy @attributes, @store, (res, err) ->
+          if err and callback
+            callback(null, err)
+          else if callback
+            callback @attributes
     else if callback
-      callback(null, 'Trying to destroy '+@store+' record without an id attribute present')
+      callback(null, 'Trying to destroy '+@store+' record without the key attribute')
   
           
   # clean() scrubs any invalid attributes present prior to saving 
   # useful for stuctured storage, unused by nosql/document stores
-  clean: =>
-    if !@storable_fields
-      return @attributes
-      
-    cleaned = {}
-    for prop, val of @attributes
-      if @storable_fields.indexOf(prop.toString()) >= 0
-        cleaned[prop] = val  
-    cleaned
+  clean: (callback) =>
+    
+    # if the responder engine is mysql based, get fields out of the store 
+    if !@fields and @responder.database and @responder.database.isSql
+      @responder.database.describe @store, (fields, err) =>
+        if err
+          throw new Error '[flint] Database storage object ' + @store + ' does not exist!'
+        else  
+          @fields = fields
+          @_clean(callback)
+    else
+      @_clean(callback)
+  
+  _clean: (callback) =>
+    if @fields
+      cleaned = {}
+      for prop, val of @attributes
+        for column in @fields
+            if prop.toString() is column.name
+              cleaned[prop] = val
+              break
+            
+      callback cleaned
+    else
+      callback @attributes
   
   # validate needs to be present, but is generally overriden by the superclass,
   validate: =>
@@ -180,4 +207,11 @@ class Model
     for prop,value of source
       obj[prop] = value
     obj
+  
+  # returns current server date and time in sql format  
+  datetime: =>
+    now = new Date()
+    sql =  now.getFullYear() + '-' + now.getMonth() + '-' + now.getDate()
+    sql += ' ' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds()
+    sql  
     

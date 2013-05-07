@@ -24,7 +24,7 @@ argv = optimist
   .describe('f','Specify a configuration file to work with.')   
   .default('f','./flint.js')
   .alias('b','build')
-  .describe('b','Compiles the core flint libraries as flint.js to the build targets')
+  .describe('b','Compiles the core flint libraries to the build targets')
   // todo
   //.alias('r','run')
   //.describe('r','Runs the application in production mode')

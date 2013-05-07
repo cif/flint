@@ -2,7 +2,7 @@
 
 exports.config = {
   
-	// - routes + database --------------------------------
+	// - routes --------------------------------
 
   // in case your application kicks it old school a bit. 
   // remember to restart the server when you add new routes.
@@ -11,16 +11,13 @@ exports.config = {
 		// example 
 		// '/users/profile/:username?' : 'Users.profile'
 		
-		
 		// documentation (delete this. it will be broken on new apps)
 		'/docs/:file?' : 'Docs.static'
 	
 	},
+		
+	// - database --------------------------------
 	
-	// used for signing cookies in your application. CHANGE IT!
-	cookie_secret: '#ASUPERSECRETVALUETHATYOUSHOULDCHANGE!',
-	
-	// database configuration
   db: {
     engine: 'mysql',
     host: '127.0.0.1',
@@ -28,7 +25,19 @@ exports.config = {
     password: 'flint!',
     database: 'flint'
   },
-   
+  
+	// - smtp --------------------------------
+	
+	mail_host: '',
+	mail_port: '23',
+	mail_username: '',
+	mail_password: '',
+	mail_smtp: true,
+	
+	// used for signing cookies in your application. change it.
+	cookie_secret: '#ASUPERSECRETVALUETHATYOUSHOULDCHANGE',
+	
+ 
   //  - client side compilers --------------------------------
   
   // dependencies
