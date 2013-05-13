@@ -7,4 +7,14 @@
 class Model extends Backbone.Model
   
   
+    
+  # generic validation. 
+  validate: (attrs) =>
+    return @validate_fields(attrs) if @fields
+  
+  # field based validation
+  validate_fields: (attrs) =>
+    return undefined
+    
+  
   

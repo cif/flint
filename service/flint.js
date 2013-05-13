@@ -8,10 +8,12 @@ Flint.Helpers = (function() {
 
   function Helpers(handlebars) {
     this.handlebars = handlebars;
+    this.require = __bind(this.require, this);
     this.include = __bind(this.include, this);
     this.handlebars.registerHelper('include', this.include);
     this.handlebars.registerHelper('cache_buster', this.cache_buster);
     this.handlebars.registerHelper('eq', this.eq);
+    this.handlebars.registerHelper('json', this.json);
   }
 
   Helpers.prototype.cache_buster = function() {
@@ -26,12 +28,14 @@ Flint.Helpers = (function() {
     }
   };
 
+  Helpers.prototype.json = function(object) {
+    return JSON.stringify(object);
+  };
+
   Helpers.prototype.include = function(file, data) {
-    var content, decoded, ent, fs, hbs, path, template;
-    fs = require('fs');
-    path = require('path');
-    ent = require(path.resolve(this.config.flint_path + '/../node_modules/ent'));
-    hbs = require(path.resolve(this.config.flint_path + '/../node_modules/hbs'));
+    var content, decoded, ent, hbs, template;
+    ent = this.require('ent');
+    hbs = this.require('hbs');
     content = fs.readFileSync(path.resolve(this.config.base + 'app/views/' + file), 'utf8');
     if (data) {
       template = hbs.handlebars.compile(content);
@@ -39,6 +43,10 @@ Flint.Helpers = (function() {
     }
     decoded = ent.decode(content);
     return new hbs.handlebars.SafeString(decoded);
+  };
+
+  Helpers.prototype.require = function(module) {
+    return require(path.resolve(this.config.flint_path + '/../node_modules/' + module));
   };
 
   return Helpers;
@@ -55,9 +63,12 @@ Flint.Model = (function() {
     this.responder = responder;
     if (options == null) options = {};
     this.datetime = __bind(this.datetime, this);
-    this.validate = __bind(this.validate, this);
+    this.find_related = __bind(this.find_related, this);
+    this.parse_relations = __bind(this.parse_relations, this);
+    this.find_related_models = __bind(this.find_related_models, this);
     this._clean = __bind(this._clean, this);
     this.clean = __bind(this.clean, this);
+    this.validate = __bind(this.validate, this);
     this._destroy = __bind(this._destroy, this);
     this.__save = __bind(this.__save, this);
     this._save = __bind(this._save, this);
@@ -66,7 +77,10 @@ Flint.Model = (function() {
     this._create = __bind(this._create, this);
     this.destroy = __bind(this.destroy, this);
     this.save = __bind(this.save, this);
+    this.read_only = __bind(this.read_only, this);
     this.read = __bind(this.read, this);
+    this.first = __bind(this.first, this);
+    this.find_only = __bind(this.find_only, this);
     this.find = __bind(this.find, this);
     this.create = __bind(this.create, this);
     this.set = __bind(this.set, this);
@@ -98,7 +112,6 @@ Flint.Model = (function() {
   };
 
   Model.prototype.create = function(props, callback) {
-    if (!props.created_on) props.created_on = this.datetime();
     return this._create(props, callback);
   };
 
@@ -106,8 +119,30 @@ Flint.Model = (function() {
     return this._find(options, callback);
   };
 
+  Model.prototype.find_only = function(options, callback) {
+    options.only = true;
+    return this._find(options, callback);
+  };
+
+  Model.prototype.first = function(options, callback) {
+    var _this = this;
+    return this._find(options, function(err, res) {
+      if (err) {
+        return callback(err);
+      } else if (res) {
+        return callback(null, res[0]);
+      } else {
+        return callback(null, false);
+      }
+    });
+  };
+
   Model.prototype.read = function(id, callback) {
-    return this._read(id, callback);
+    return this._read(id, false, callback);
+  };
+
+  Model.prototype.read_only = function(id, callback) {
+    return this._read(id, true, callback);
   };
 
   Model.prototype.save = function(props, callback) {
@@ -121,13 +156,13 @@ Flint.Model = (function() {
   Model.prototype._create = function(props, callback) {
     var validate;
     if (props) this.attributes = this.extend(this.attributes, props);
-    delete this.attributes.id;
+    delete this.attributes[this.key];
     if (!props || !props.silent) {
       validate = this.validate(props);
       if (typeof validate === 'undefined') {
         return this.__save(callback);
       } else if (callback) {
-        return callback(null, validated);
+        return callback(new Error('Unable to save model: ' + validate));
       }
     } else {
       return this.__save(callback);
@@ -135,19 +170,32 @@ Flint.Model = (function() {
   };
 
   Model.prototype._find = function(options, callback) {
-    return this.responder.database.find(options, this.store, callback);
+    var _this = this;
+    return this.responder.database.find(options, this.store, function(err, res) {
+      if (err) {
+        return callback(err);
+      } else if (!options.only) {
+        return _this.find_related_models(res, callback);
+      } else {
+        return callback(null, res);
+      }
+    });
   };
 
-  Model.prototype._read = function(id, callback) {
+  Model.prototype._read = function(id, only, callback) {
     var _this = this;
-    return this.responder.database.get(id, this.store, function(res, err) {
-      if (err && callback) {
-        return callback(null, err);
+    return this.responder.database.get(id, this.store, function(err, res) {
+      if (err) {
+        return callback(err);
       } else if (res) {
         _this.set(res);
-        if (callback) return callback(_this.attributes);
+        if (!only) {
+          return _this.find_related_models(res, callback);
+        } else {
+          return callback(null, _this.attributes);
+        }
       } else {
-        return callback(false);
+        return callback(null, false);
       }
     });
   };
@@ -160,7 +208,7 @@ Flint.Model = (function() {
       if (typeof validate === 'undefined') {
         return this.__save(callback);
       } else if (callback) {
-        return callback(null, validate);
+        return callback(new Error('Unable to save model: ' + validate));
       }
     } else {
       return this.__save(callback);
@@ -169,45 +217,78 @@ Flint.Model = (function() {
 
   Model.prototype.__save = function(callback) {
     var _this = this;
-    if (this.get('id')) {
-      return this.clean(function(cleaned) {
-        return _this.responder.database.update(cleaned, _this.store, function(res, err) {
+    return this.clean(function(err, cleaned) {
+      if (err) callback(err);
+      if (_this.get(_this.key)) {
+        if (!cleaned.updated_on && _this.stamp_updated_on) {
+          cleaned.updated_on = _this.datetime();
+        }
+        cleaned.key = _this.key;
+        return _this.responder.database.update(cleaned, _this.store, function(err, res) {
           if (err && callback) {
-            return callback(null, err);
+            return callback(err);
           } else if (callback) {
-            return callback(_this.attributes);
+            return callback(null, _this.attributes);
           }
         });
-      });
-    } else {
-      return this.clean(function(cleaned) {
-        return _this.responder.database.insert(cleaned, _this.store, function(res, err) {
+      } else {
+        if (!cleaned.created_on && _this.stamp_created_on) {
+          cleaned.created_on = _this.datetime();
+        }
+        cleaned.key = _this.key;
+        return _this.responder.database.insert(cleaned, _this.store, function(err, res) {
           if (err && callback) {
-            return callback(null, err);
+            return callback(err);
           } else if (callback) {
             _this.set('id', res.id);
-            return callback(_this.attributes);
+            return callback(null, _this.attributes);
           }
         });
-      });
-    }
+      }
+    });
   };
 
   Model.prototype._destroy = function(id, callback) {
-    if (!callback) {
-      throw new Error('Missing callback function on Flint.Model._destroy');
-    }
-    if (!id) id = this.get('id');
-    if (id) {
-      return this.responder.database.destroy(id, this.store, function(res, err) {
+    if (this.get(this.key)) {
+      this.attributes.key = this.key;
+      return this.responder.database.destroy(this.attributes, this.store, function(err, res) {
         if (err && callback) {
-          return callback(null, err);
+          return callback(err);
         } else if (callback) {
-          return callback(this.attributes);
+          return callback(null, this.attributes);
         }
       });
     } else if (callback) {
-      return callback(null, 'Trying to destroy ' + this.store + ' record without an id attribute present');
+      return callback(new Error('Trying to destroy ' + this.store + ' record without the key attribute'));
+    }
+  };
+
+  Model.prototype.validate = function(attrs) {
+    if (this.fields) return this.validate_fields(attrs);
+  };
+
+  Model.prototype.validate_fields = function(attrs) {
+    var field, key, options, rule, valid_email, value, _ref;
+    _ref = this.fields;
+    for (field in _ref) {
+      options = _ref[field];
+      if (options && options.valid) {
+        rule = options.valid;
+        for (key in attrs) {
+          value = attrs[key];
+          if (field === key) {
+            if (rule === 'not_empty' && value === '') {
+              return field + ' must not have an empty value.';
+            }
+            if (rule === 'valid_email') {
+              valid_email = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+              if (!value.match(valid_email)) {
+                return field + ' must be a valid email address.';
+              }
+            }
+          }
+        }
+      }
     }
   };
 
@@ -228,28 +309,196 @@ Flint.Model = (function() {
   };
 
   Model.prototype._clean = function(callback) {
-    var cleaned, column, prop, val, _i, _len, _ref, _ref2;
+    var cleaned, column, options, prop, val, _i, _len, _ref, _ref2, _ref3;
     if (this.fields) {
       cleaned = {};
       _ref = this.attributes;
       for (prop in _ref) {
         val = _ref[prop];
-        _ref2 = this.fields;
-        for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-          column = _ref2[_i];
-          if (prop.toString() === column.name) {
-            cleaned[prop] = val;
-            break;
+        if (typeof this.fields === 'array') {
+          _ref2 = this.fields;
+          for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+            column = _ref2[_i];
+            if (prop.toString() === column.name) {
+              cleaned[prop] = val;
+              break;
+            }
+          }
+        } else {
+          _ref3 = this.fields;
+          for (column in _ref3) {
+            options = _ref3[column];
+            if (prop.toString() === column) {
+              cleaned[prop] = val;
+              break;
+            }
           }
         }
       }
-      return callback(cleaned);
+      return callback(null, cleaned);
     } else {
-      return callback(this.attributes);
+      return callback(null, this.attributes);
     }
   };
 
-  Model.prototype.validate = function() {};
+  Model.prototype.find_related_models = function(results, callback) {
+    var calls;
+    var _this = this;
+    this.async = this.responder.require('async');
+    calls = [];
+    calls.push(function(callback) {
+      return callback(null, results);
+    });
+    if (results && this.has_one) {
+      calls.push(function(results, callback) {
+        return _this.find_related(results, _this.parse_relations(_this.has_one), true, callback);
+      });
+    }
+    if (results && this.has_many) {
+      calls.push(function(results, callback) {
+        return _this.find_related(results, _this.parse_relations(_this.has_many), false, callback);
+      });
+    }
+    if (this.belongs_to) {
+      calls.push(function(results, callback) {
+        return _this.find_related(results, _this.parse_relations(_this.belongs_to, true), true, callback);
+      });
+    }
+    if (this.has_mutual) {
+      calls.push(function(results, callback) {
+        return _this.find_related(results, _this.parse_relations(_this.has_mutual, false, true), false, callback);
+      });
+    }
+    return this.async.waterfall(calls, callback);
+  };
+
+  Model.prototype.parse_relations = function(related, belongs, joined) {
+    var foreign, linking, local, obj, plural, prop, relations, relationships, ship, singular, value, _i, _len;
+    relationships = [];
+    if (typeof related === 'string') {
+      relations = related.split(',');
+    } else if (typeof related === 'object') {
+      relations = [];
+      for (prop in related) {
+        value = related[prop];
+        obj = {};
+        obj[prop] = value;
+        relations.push(obj);
+      }
+    } else {
+      relations = related;
+    }
+    for (_i = 0, _len = relations.length; _i < _len; _i++) {
+      ship = relations[_i];
+      if (typeof ship === 'object') {
+        linking = ship;
+        ship = Object.keys(ship)[0];
+        linking = linking[ship] || {};
+      } else {
+        linking = {};
+      }
+      singular = this.store.singularize().toLowerCase();
+      plural = ship.pluralize().toLowerCase();
+      if (joined) {
+        foreign = ship.singularize().toLowerCase() + '_' + this.key;
+        local = this.key;
+        if (!linking.link_table) {
+          linking.link_table = this.store + '_' + ship.pluralize().toLowerCase();
+        }
+        linking.local_link = singular + '_' + this.key;
+      } else {
+        local = belongs ? ship.singularize().toLowerCase() + '_' + this.key : this.key;
+        foreign = belongs ? this.key : singular + '_' + this.key;
+      }
+      if (!linking.link) linking.link = ship;
+      if (!linking.model) linking.model = ship.singularize().camelize();
+      if (!linking.table) linking.table = ship.pluralize();
+      if (!linking.local_key) linking.local_key = local;
+      if (!linking.foreign_key) linking.foreign_key = foreign;
+      relationships.push(linking);
+    }
+    return relationships;
+  };
+
+  Model.prototype.find_related = function(results, relations, first, callback) {
+    var find_related;
+    var _this = this;
+    find_related = function(related, cb) {
+      var keys, model, query, res, _i, _len;
+      if (models[related.model]) {
+        model = new models[related.model](_this.responder, {
+          store: related.table
+        });
+      } else {
+        model = new Flint.Model(_this.responder, {
+          store: related.table
+        });
+      }
+      keys = [];
+      for (_i = 0, _len = results.length; _i < _len; _i++) {
+        res = results[_i];
+        keys.push(res[related.local_key]);
+      }
+      if (related.link_table) {
+        query = {
+          where: related.link_table + '.' + related.local_link + ' IN("' + keys.join('","') + '")',
+          join: {
+            table: related.link_table,
+            on: related.table + '.' + model.key + '=' + related.link_table + '.' + related.foreign_key
+          }
+        };
+      } else {
+        query = {
+          where: related.foreign_key + ' IN("' + keys.join('","') + '")'
+        };
+      }
+      if (related.fields) query.fields = related.fields;
+      if (related.order) query.order = related.order;
+      if (related.limit) query.limit = related.limit;
+      return model.find(query, function(err, orm) {
+        return cb(null, {
+          results: orm,
+          related: related
+        });
+      });
+    };
+    return this.async.map(relations, find_related, function(err, mapped) {
+      var map, orm, res, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref;
+      for (_i = 0, _len = mapped.length; _i < _len; _i++) {
+        map = mapped[_i];
+        if (!map) continue;
+        if (map.results) {
+          if (map.related.link_table) {
+            map.related.foreign_key = map.related.local_link;
+          }
+          for (_j = 0, _len2 = results.length; _j < _len2; _j++) {
+            res = results[_j];
+            if (!first) res[map.related.link] = [];
+            _ref = map.results;
+            for (_k = 0, _len3 = _ref.length; _k < _len3; _k++) {
+              orm = _ref[_k];
+              if (orm[map.related.foreign_key] === res[map.related.local_key]) {
+                if (!first) {
+                  res[map.related.link].push(orm);
+                } else {
+                  res[map.related.link] = orm;
+                }
+              }
+            }
+            if (!res[map.related.link] || res[map.related.link].length === 0) {
+              res[map.related.link] = false;
+            }
+          }
+        } else {
+          for (_l = 0, _len4 = results.length; _l < _len4; _l++) {
+            res = results[_l];
+            res[map.related.link] = false;
+          }
+        }
+      }
+      return callback(null, results);
+    });
+  };
 
   Model.prototype.extend = function(obj, source) {
     var prop, value;
@@ -279,6 +528,8 @@ Flint.Mysql = (function() {
     this.uuid = __bind(this.uuid, this);
     this.s4 = __bind(this.s4, this);
     this.describe = __bind(this.describe, this);
+    this.objectify = __bind(this.objectify, this);
+    this.stringify = __bind(this.stringify, this);
     this.query = __bind(this.query, this);
     this.destroy = __bind(this.destroy, this);
     this.update = __bind(this.update, this);
@@ -288,9 +539,15 @@ Flint.Mysql = (function() {
   }
 
   Mysql.prototype.find = function(options, store, callback) {
-    var conditions, field, fields, operand, query, val, value, _ref;
+    var conditions, direction, field, fields, operand, query, val, value, _ref;
+    var _this = this;
     fields = options.fields ? options.fields : '*';
     query = 'SELECT ' + fields + ' FROM ' + store;
+    if (options.join) {
+      direction = options.join.direction || 'LEFT';
+      query += ' ' + direction + ' JOIN (' + options.join.table + ') ';
+      query += 'ON ' + options.join.on;
+    }
     if (options.where) {
       if (typeof options.where === 'string') {
         query += ' WHERE ' + options.where;
@@ -313,61 +570,79 @@ Flint.Mysql = (function() {
     }
     if (options.order) query += ' ORDER BY ' + options.order;
     if (options.limit) query += ' LIMIT ' + options.limit;
-    console.log(callback);
-    console.log(query);
     return this.connection.query(query, function(err, rows, fields) {
-      var results, row, _i, _len;
+      var prop, results, row, value, _i, _len;
       if (err && callback) {
-        return callback(null, err);
+        return callback(err);
       } else {
         results = [];
         if (rows.length === 0) {
-          return callback(false);
+          return callback(null, false);
         } else {
           for (_i = 0, _len = rows.length; _i < _len; _i++) {
             row = rows[_i];
+            for (prop in row) {
+              value = row[prop];
+              row[prop] = _this.objectify(value);
+            }
             results.push(row);
           }
-          if (callback) return callback(results);
+          if (callback) return callback(null, results);
         }
       }
     });
   };
 
   Mysql.prototype.get = function(id, store, callback) {
+    var _this = this;
     return this.connection.query('SELECT * FROM ' + store + ' WHERE id = ' + this.connection.escape(id), function(err, rows, fields) {
+      var prop, res, value;
       if (err && callback) {
-        return callback(null, err);
+        return callback(err);
       } else if (callback) {
-        return callback(rows[0]);
+        res = rows[0];
+        for (prop in res) {
+          value = res[prop];
+          res[prop] = _this.objectify(value);
+        }
+        return callback(null, rows[0]);
       }
     });
   };
 
   Mysql.prototype.insert = function(object, store, callback) {
-    object.id = this.uuid();
-    return this.connection.query('INSERT INTO ' + store + ' SET ?', object, function(err, res) {
+    object[object.key] = this.uuid();
+    delete object.key;
+    return this.connection.query('INSERT INTO ' + store + ' SET ?', this.stringify(object), function(err, res) {
       if (err) {
-        return callback(null, err);
+        console.log(err);
+        return callback(err);
       } else if (callback) {
         res.id = object.id;
-        return callback(res, err);
+        return callback(null, res);
       }
     });
   };
 
   Mysql.prototype.update = function(object, store, callback) {
-    var id;
-    id = object.id;
-    delete object.id;
-    return this.connection.query('UPDATE ' + store + ' SET ? WHERE id = ' + this.connection.escape(id), object, function(err, res) {
-      if (callback) return callback(res, err);
+    var id, key;
+    id = object[object.key];
+    key = object.key;
+    delete object[object.key];
+    delete object.key;
+    return this.connection.query('UPDATE ' + store + ' SET ? WHERE ' + key + ' = ' + this.connection.escape(id), this.stringify(object), function(err, res) {
+      if (callback) return callback(err, res);
     });
   };
 
-  Mysql.prototype.destroy = function(id, store, callback) {
-    return this.connection.query('DELETE FROM ' + store + ' WHERE id = ' + this.connection.escape(id), function(err, res) {
-      if (callback) return callback(res, err);
+  Mysql.prototype.destroy = function(object, store, callback) {
+    var id, key;
+    id = object[object.key];
+    key = object.key;
+    delete object[object.key];
+    delete object.key;
+    return this.connection.query('DELETE FROM ' + store + ' WHERE ' + key + ' = ' + this.connection.escape(id), function(err, res) {
+      if (callback) return callback(err, res);
     });
   };
 
@@ -375,17 +650,42 @@ Flint.Mysql = (function() {
     var results;
     results = [];
     return this.connection.query(this.connection.escape(query), function(err, rows, fields) {
-      var row, _i, _len;
+      var prop, row, value, _i, _len;
       if (err) {
-        return callback(null, err);
+        return callback(err);
       } else {
-        for (_i = 0, _len = rows.length; _i < _len; _i++) {
-          row = rows[_i];
-          results.push(row.Field);
+        if (rows.length === 0) {
+          return callback(false);
+        } else {
+          for (_i = 0, _len = rows.length; _i < _len; _i++) {
+            row = rows[_i];
+            for (prop in row) {
+              value = row[prop];
+              row[prop] = this.objectify(value);
+            }
+            results.push(row);
+          }
+          if (callback) return callback(null, results);
         }
-        return callback(results);
       }
     });
+  };
+
+  Mysql.prototype.stringify = function(object) {
+    var prop, value;
+    for (prop in object) {
+      value = object[prop];
+      if (typeof value !== 'string') object[prop] = JSON.stringify(value);
+    }
+    return object;
+  };
+
+  Mysql.prototype.objectify = function(string_or_object) {
+    if (typeof string_or_object !== 'string') return string_or_object;
+    if (/^[\],:{}\s]*$/.test(string_or_object.replace(/\\["\\\/bfnrtu]/g, '@').replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']').replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+      string_or_object = JSON.parse(string_or_object);
+    }
+    return string_or_object;
   };
 
   Mysql.prototype.describe = function(store, callback) {
@@ -394,7 +694,7 @@ Flint.Mysql = (function() {
     return this.connection.query('DESC ' + store, function(err, rows, fields) {
       var row, _i, _len;
       if (err) {
-        return callback(null, err);
+        return callback(err);
       } else {
         for (_i = 0, _len = rows.length; _i < _len; _i++) {
           row = rows[_i];
@@ -403,7 +703,7 @@ Flint.Mysql = (function() {
             type: row.Type
           });
         }
-        if (callback) return callback(valid);
+        if (callback) return callback(null, valid);
       }
     });
   };
@@ -427,7 +727,9 @@ Flint.Mysql = (function() {
 Flint.Responder = (function() {
 
   function Responder(config) {
+    var mysql;
     this.config = config;
+    this.require = __bind(this.require, this);
     this.finish = __bind(this.finish, this);
     this["delete"] = __bind(this["delete"], this);
     this.put = __bind(this.put, this);
@@ -435,8 +737,8 @@ Flint.Responder = (function() {
     this.get = __bind(this.get, this);
     if (this.config.db) {
       if (this.config.db.engine === 'mysql') {
-        this.mysql = require(path.resolve(this.config.flint_path + '/../node_modules/mysql'));
-        this.connection = this.mysql.createConnection(this.config.db);
+        mysql = this.require('mysql');
+        this.connection = mysql.createConnection(this.config.db);
         this.connection.connect();
         if (!this.connection) {
           throw new Error('Unable to establish mysql database connection!');
@@ -464,12 +766,12 @@ Flint.Responder = (function() {
       store: this.default_store
     });
     if (data.id) {
-      return model.read(data.id, function(result) {
-        delete result.store;
-        return callback(result);
+      return model.read(data.id, function(err, res) {
+        if (err) callback(err);
+        delete res.store;
+        return callback(null, res);
       });
     } else {
-      console.log('calling find?');
       return model.find(false, callback);
     }
   };
@@ -480,16 +782,17 @@ Flint.Responder = (function() {
     model = new Instance(this, {
       store: this.default_store
     });
-    return model.create(data, function(res, err) {
+    console.log(data);
+    return model.create(data, function(err, res) {
       if (err) {
-        return callback(null, err);
+        return callback(err);
       } else {
         res = {};
         res.emit = {
           event: 'created:' + model.store,
           data: model.attributes
         };
-        return callback(res);
+        return callback(null, res);
       }
     });
   };
@@ -500,16 +803,16 @@ Flint.Responder = (function() {
     model = new Instance(this, {
       store: this.default_store
     });
-    return model.save(data, function(res, err) {
+    return model.save(data, function(err, res) {
       if (err) {
-        return callback(null, err);
+        return callback(err);
       } else {
         res = {};
         res.emit = {
           event: 'modified:' + model.store,
           data: model.attributes
         };
-        return callback(res);
+        return callback(null, res);
       }
     });
   };
@@ -527,9 +830,17 @@ Flint.Responder = (function() {
     return this.database.close_connection();
   };
 
+  Responder.prototype.require = function(module) {
+    return require(path.resolve(this.config.flint_path + '/../node_modules/' + module));
+  };
+
   Responder.prototype.__get_model_instance = function() {
     var Instance;
-    Instance = this.model ? models[this.model] : Flint.Model;
+    if (!this.model && this.default_store) {
+      this.model = this.default_store.singularize().camelize();
+      console.log('using default model: ', this.model);
+    }
+    Instance = this.model && models[this.model] ? models[this.model] : Flint.Model;
     if (!Instance) {
       throw new Error('Flint.Model class ' + this.model + ' does not exist!');
     }
@@ -537,6 +848,39 @@ Flint.Responder = (function() {
   };
 
   return Responder;
+
+})();
+
+Flint.Smtp = (function() {
+
+  __extends(Smtp, Flint.Responder);
+
+  function Smtp() {
+    this.notify = __bind(this.notify, this);
+    Smtp.__super__.constructor.apply(this, arguments);
+  }
+
+  Smtp.prototype.notify = function(data, file, callback) {
+    var content, decoded, ent, fs, hbs, path, server, smtp, template;
+    smtp = this.require('emailjs');
+    server = smtp.server.connect({
+      host: data.config.mail_host,
+      user: data.config.mail_username,
+      password: data.config.mail_password,
+      port: data.config.mail_port,
+      ssl: data.config.mail_ssl
+    });
+    fs = require('fs');
+    path = require('path');
+    ent = this.require('ent');
+    hbs = this.require('hbs');
+    content = fs.readFileSync(path.resolve(data.config.base + 'app/views/' + file), 'utf8');
+    template = hbs.handlebars.compile(content);
+    content = template(data);
+    return decoded = ent.decode(content);
+  };
+
+  return Smtp;
 
 })();
 

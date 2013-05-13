@@ -18,6 +18,15 @@
   <p><strong>Have Fun Building!</strong><br /><br /> &nbsp;&nbsp;&mdash; The Flint Crew</p>
 </div>
 <!-- END INTRO MARKUP  -->
+<form action="/widgets/" method="POST">
+  <input type="text" name="name" /> name <br />
+  <input type="text" name="type" /> type <br />
+  <input type="text" name="color" /> color <br />
+  <input type="text" name="size" /> size <br />
+  <input type="text" name="email" /> email <br />
+  <input type="submit" value="post">
+</form>  
+
 {{include '_scripts.html' this}}  
 <script type="text/javascript">
 	$(document).ready(function(){ app = new controllers.Application(); });

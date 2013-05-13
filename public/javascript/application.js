@@ -33,14 +33,27 @@ controllers.Application = (function() {
   }
 
   Application.prototype.initialize = function() {
+    var test;
+    var _this = this;
     this.isTouch = navigator.userAgent.match(/(iPhone|iPod|iPad|Android|BlackBerry)/);
     this.isOnline = navigator.onLine;
     this.sync = new Flint.Sync;
     this.notifications = new Flint.Notifications(this);
     this.helpers = new views.Helpers;
     this.controllers = [];
+    test = new models.Widget();
+    test.set('owner_id', '123');
+    test.set('color', 'fushia');
+    test.save(null, {
+      success: function(eh) {
+        return console.log(eh);
+      },
+      error: function(ya) {
+        return console.log(ya);
+      }
+    });
     if (console && console.log) console.log('[flint] Application initialized.');
-    Backbone.history.start();
+    if (Backbone.history) Backbone.history.start();
     return this;
   };
 
@@ -127,7 +140,32 @@ models.Widget = (function() {
     Widget.__super__.constructor.apply(this, arguments);
   }
 
+  Widget.prototype.url = '/widgets';
+
   Widget.prototype.store = 'widgets';
+
+  Widget.prototype.has_many = {
+    objects: {
+      order: 'sort_order ASC'
+    },
+    animals: null
+  };
+
+  Widget.prototype.belongs_to = 'owner';
+
+  Widget.prototype.has_mutual = 'features';
+
+  Widget.prototype.fields = {
+    'color': {
+      type: 'varchar(255)',
+      valid: 'not_empty'
+    },
+    'size': null,
+    'in_stock': null,
+    'owner_id': {
+      type: 'varchar(36)'
+    }
+  };
 
   return Widget;
 

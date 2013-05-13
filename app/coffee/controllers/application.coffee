@@ -21,11 +21,21 @@ class Application extends Backbone.Router
     @controllers    = []
     
     
+    test = new models.Widget()
+    test.set 'owner_id', '123'
+    test.set 'color', 'fushia'
+    test.save null, 
+      success: (eh) =>
+        console.log eh
+      error: (ya) =>
+        console.log ya  
+    
     # console messages - note the simiple test case that preserves the location of output in application.js
     console.log '[flint] Application initialized.' if console and console.log
     
     # start backbone history (this is best moved behind a login for real applications)
-    Backbone.history.start()
+
+    Backbone.history.start() if Backbone.history
     
     # return the application instance
     this

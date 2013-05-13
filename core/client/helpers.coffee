@@ -71,7 +71,7 @@ class Helpers
     out = []
     _.each(context, (model) ->
       context = if model.attributes then model.attributes else model
-      out.push(block(context))
+      out.push(block.fn(context))
     )
     out = if out.length > 0 then out.join('') else zero_length_message
     new Handlebars.SafeString(out) 
@@ -176,7 +176,7 @@ class Helpers
     _.map(attributes.hash, (value, key) -> 
       attrs.push key + '="' + value + '"'
     ) if attributes
-    value = if model and model.get then model.get(field) else ''
+    value = if model and model.get and model.get(field) then model.get(field) else ''
     new Handlebars.SafeString('<textarea name="'+field+'" ' + attrs.join(' ') + '>'+value+'</textarea>')
   
     

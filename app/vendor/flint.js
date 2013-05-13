@@ -205,6 +205,7 @@ Flint.Controller = (function() {
     this._bind = __bind(this._bind, this);
     this.bind = __bind(this.bind, this);
     this.init = __bind(this.init, this);
+    this.initialize = __bind(this.initialize, this);
     Controller.__super__.constructor.apply(this, arguments);
   }
 
@@ -334,7 +335,7 @@ Flint.Controller = (function() {
     if (options == null) options = {};
     if (this.list.collection.length === 0) {
       return this.fetch(function() {
-        return _this.__get(id, callback, options);
+        return callback(_this.grab(id));
       });
     } else {
       return this.__get(id, callback, options);
@@ -348,6 +349,7 @@ Flint.Controller = (function() {
     if (!model) {
       if (callback) return callback(false);
     } else {
+      model.id = id;
       return model.fetch({
         silent: true,
         success: function(result) {
@@ -926,7 +928,7 @@ Flint.Helpers = (function() {
     out = [];
     _.each(context, function(model) {
       context = model.attributes ? model.attributes : model;
-      return out.push(block(context));
+      return out.push(block.fn(context));
     });
     out = out.length > 0 ? out.join('') : zero_length_message;
     return new Handlebars.SafeString(out);
@@ -1056,7 +1058,7 @@ Flint.Helpers = (function() {
         return attrs.push(key + '="' + value + '"');
       });
     }
-    value = model && model.get ? model.get(field) : '';
+    value = model && model.get && model.get(field) ? model.get(field) : '';
     return new Handlebars.SafeString('<textarea name="' + field + '" ' + attrs.join(' ') + '>' + value + '</textarea>');
   };
 
@@ -1379,8 +1381,16 @@ Flint.Model = (function() {
   __extends(Model, Backbone.Model);
 
   function Model() {
+    this.validate_fields = __bind(this.validate_fields, this);
+    this.validate = __bind(this.validate, this);
     Model.__super__.constructor.apply(this, arguments);
   }
+
+  Model.prototype.validate = function(attrs) {
+    if (this.fields) return this.validate_fields(attrs);
+  };
+
+  Model.prototype.validate_fields = function(attrs) {};
 
   return Model;
 

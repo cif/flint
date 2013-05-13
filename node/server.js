@@ -12,14 +12,14 @@ path = require('path');
   
   var setupRoutes = function(routes){
     
-    // serve public assets the app needs for GUI - this is old, express.static is probably better?
+    // serve public assets the app needs for GUI - 
+		// TODO - this is old, express.static is probably better? (YES!!)
     app.get('/css/:file?', function(req, res){ res.sendfile(path.resolve(config.base + 'public/css/' + req.params.file)) });
     app.get('/javascript/:file?', function(req, res){ res.sendfile(path.resolve(config.base + 'public/javascript/' + req.params.file)) }); 
     app.get('/fonts/:file?', function(req, res){ res.sendfile(path.resolve(config.base + 'public/fonts/' + req.params.file)) });
-		app.get('/images/:file?', function(req, res){ res.sendfile(path.resolve(config.base + '/public/images/' + req.params.file)) });
+		app.get('/images/:file?', function(req, res){ res.sendfile(path.resolve(config.base + 'public/images/' + req.params.file)) });
     app.get('/public/:file?', function(req, res){ res.sendfile(path.resolve(config.base + 'public/' + req.params.file)) });
 		app.get('/favicon.ico', function(req, res){ res.sendfile(path.resolve(config.base + 'public/favicon.ico')) });
-    
     
 		if(!routes['/']){ // ... if a default path hasn't been established render the index.
 			 
@@ -41,9 +41,9 @@ path = require('path');
   };
 	
 	// sends the final response from the responder (controller) method
-  var sendFinalResponse = function(res, response, error){
+  var sendFinalResponse = function(err, res, response){
 			
-	  if(!error){
+	  if(!err){
      	
 			if(response.emit){ 
 				
@@ -85,7 +85,7 @@ path = require('path');
 			
        res.set('Content-Type','text/plain');
        res.status(500);
-			 res.send('[flint] 500 server error:' + "\n" + error.toString());
+			 res.send(err.toString());
       	
     }
 
@@ -95,9 +95,9 @@ path = require('path');
 	var respondToAppRequest = function(req, res){
        
 	  // asyncronous JSON responder 
-    getApplicationResponse(req, res, function(response, error){
+    getApplicationResponse(req, res, function(err, response){
       
-			sendFinalResponse(res, response, error);
+			sendFinalResponse(err, res, response);
       
 		});
        
@@ -116,9 +116,9 @@ path = require('path');
 			if(url.match(wild)){
 				
 				matched = config.routes[route];
-				getCustomResponse(req, res, matched, function(response, error){
+				getCustomResponse(req, res, matched, function(err, response){
 					
-					 sendFinalResponse(res, response, error);
+					 sendFinalResponse(err, res, response);
 					
 				});
 				
@@ -128,7 +128,7 @@ path = require('path');
 		}
 		
 		// unable to match a route - should never get here but not sure how solid that regex is. no splats yet.
-		sendFinalResponse(res, null, 'Not Found: Unable to match a route to this request.')
+		sendFinalResponse(new Error('Not Found: Unable to match a route to this request.'), res, response);
 			
 	}
   
@@ -155,14 +155,14 @@ path = require('path');
       // instantantiate the controller
       Controller = new responders.controllers[controller](config);
       
-    } else if(Flint.Responder.prototype[method_to_call]) {
+    } else if(responders.Flint.Responder.prototype[request_method]) {
       
 			// use the generic Flint Responder fallback instead
 			Controller = new Flint.Responder(config);
 				
     } else {
 			
-			return callback(null, 'Missing responder class ' + controller);
+			return callback(new Error('Missing responder class ' + controller));
 			 
 		}
 		
@@ -183,11 +183,11 @@ path = require('path');
 		// verify controller method is present
 		if(Controller[method_to_call]){
        
-       // call the controller method
-       Controller[method_to_call](data, credentials, function(response, error){
+			 // call the controller method
+       Controller[method_to_call](data, credentials, function(err, res){
          
          Controller.after(data, credentials);
-         return callback(response, error);
+         return callback(err, res);
        	 
        });
      
@@ -197,17 +197,17 @@ path = require('path');
      } else if(Controller[request_method]) {
        
 			 // call the request_method on the controller
-       Controller[request_method](data, credentials, function(response, error){
+       Controller[request_method](data, credentials, function(err, res){
          
          Controller.after(data, credentials);
-         return callback(response, error);
+         return callback(err, res);
        	 
        });
 			
 		 } else {
 			
 			 // almost never makes it here. "too automatic to fail."	
-       return callback(null, 'Missing  method ' + method_to_call + ' on responder class ' + controller);
+       return callback(new Error('Missing  method ' + method_to_call + ' on responder class ' + controller));
 
      }
       
@@ -217,6 +217,7 @@ path = require('path');
   var getCustomResponse = function(req, res, responder_method, callback){
 			
 		// get the controller 
+		inflector = require('./inflector');  // custom requests need the inflector too for ORM
 		responders = require(path.resolve(config.base + 'service/responders'));
 		method = responder_method.split('.');
 		controller = method[0];
@@ -237,13 +238,13 @@ path = require('path');
 			if(Controller[method_to_call]) {
       
 				 // call the request_method on the controller
-	       return_callback = function(response, error){
+	       return_callback = function(err, res){
         
 	         //wrap up the controler
 	         Controller.after(data, credentials);
         
 	         // callback to deliver the response
-	         return callback(response, error);
+	         return callback(err, res);
       	 
 	       };
 				 
@@ -260,14 +261,14 @@ path = require('path');
 		
 			 } else {  // ... missing method on the controller
 	     
-	  		return callback(null, 'Missing method ' + method_to_call + ' on responder class ' + controller);
+	  		return callback(new Error('Missing method ' + method_to_call + ' on responder class ' + controller));
 	     
 			 }	
 
      
   		} else {   // ... missing the responder (controller) class.
 				
-				return callback(null, 'Missing responder class ' + controller);
+				return callback(new Error('Missing responder class ' + controller));
 			
 			}
 		
@@ -287,13 +288,6 @@ path = require('path');
 		for(obj in req.query){
 			if(!data.hasOwnProperty(obj)){
 				 data[obj] = req.query[obj];
-			}
-		}
-		
-		// extend the global configuration
-		for(obj in config){
-			if(!data.hasOwnProperty(obj)){
-				 data[obj] = config[obj];
 			}
 		}
 		

@@ -80,7 +80,7 @@ fs = require('fs');
   //watches a file for changes
   var fileHasChanged = function(event, filename){
       
-      console.log(color.yellow + '[plater] change detected to file, recompiling' + color.reset);
+      if(!plates.slient) console.log(color.yellow + '[plater] change detected to file, recompiling' + color.reset);
       compileTemplates();
         
   };
@@ -89,7 +89,7 @@ fs = require('fs');
   // watches a directory for changes  
   var directoryHasChanged = function(event, filename){
      
-      console.log(color.yellow + '[plater] new or removed file detected, recompiling' + color.reset);
+      if(!plates.slient) console.log(color.yellow + '[plater] new or removed file detected, recompiling' + color.reset);
       readAndCompile(plates.in, plates.watch);
         
   };
@@ -177,7 +177,7 @@ fs = require('fs');
     try {
       
       fs.writeFileSync(plates.out, output, 'utf8');
-      console.log(color.green + '[plater] compiled template directory ' + plates.in + ' to ' + plates.out + color.reset);
+      if(!plates.slient) console.log(color.green + '[plater] compiled template directory ' + plates.in + ' to ' + plates.out + color.reset);
       
     } catch(e){
     

@@ -47,7 +47,7 @@ class Controller extends Backbone.Router
     sorted         : 'You have changed the sort order.'
   
   # Backbone calls this method, sort of a psudo constructor if you will.      
-  initialize: (app) ->
+  initialize: (app) =>
     
     # Extend any messages that were overriden by the subclass
     @messages = {} unless @messages
@@ -165,7 +165,7 @@ class Controller extends Backbone.Router
   get: (id, callback, options={}) =>
     if @list.collection.length is 0
       @fetch =>
-        @__get(id, callback, options)
+        callback @grab id
     else
       @__get(id, callback, options)
         
@@ -175,6 +175,7 @@ class Controller extends Backbone.Router
       if callback
         callback false
     else
+      model.id = id
       model.fetch
         silent: true
         success: (result) =>

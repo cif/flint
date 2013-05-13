@@ -7,7 +7,7 @@ class Docs extends Flint.Responder
       current: file
       template: 'docs/' + file
     
-    callback response  
+    callback null, response  
     
   
   

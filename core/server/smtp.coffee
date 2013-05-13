@@ -6,7 +6,7 @@ class Smtp extends Flint.Responder
   notify: (data, file, callback) =>
     
     # setup smtp from config
-    smtp = require path.resolve(data.config.flint_path + '/../node_modules/emailjs')
+    smtp = @require 'emailjs'
     
     server = smtp.server.connect 
       host: data.config.mail_host
@@ -18,8 +18,9 @@ class Smtp extends Flint.Responder
     # require the notification template 
     fs = require 'fs'
     path = require 'path'
-    ent = require path.resolve(data.config.flint_path + '/../node_modules/ent')
-    hbs = require path.resolve(data.config.flint_path + '/../node_modules/hbs')
+    ent = @require 'ent'
+    hbs = @require 'hbs'
+    
     content = fs.readFileSync(path.resolve(data.config.base + 'app/views/' + file), 'utf8')
     template = hbs.handlebars.compile(content)
     content = template(data)
