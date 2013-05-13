@@ -47,50 +47,47 @@ class Mysql
         else
           for row in rows
             for prop,value of row
-              row[prop] = @objectify(value)
+              row[prop] = value
             results.push row
           if callback
             callback null, results
     
   # get a single record by id  
-  get: (id, store, callback) =>
-    @connection.query 'SELECT * FROM ' + store + ' WHERE id = ' + @connection.escape(id), (err, rows, fields) =>
+  get: (id, key, store, callback) =>
+    
+    @connection.query 'SELECT * FROM ' + store + ' WHERE ' + key + ' = ' + @connection.escape(id), (err, rows, fields) =>
       if err and callback
         callback err
       else if callback
+        
         res = rows[0]
         for prop,value of res
-          res[prop] = @objectify(value)
+          res[prop] = value
         callback null, rows[0]
     
   # insert new records
-  insert: (object, store, callback) =>
+  insert: (object, key, store, callback) =>
     
     # generate an id
-    object[object.key] = @uuid()
-    delete object.key
+    object[key] = @uuid()
     
     # store the object
-    @connection.query 'INSERT INTO ' + store + ' SET ?', @stringify(object), (err, res) ->
+    @connection.query 'INSERT INTO ' + store + ' SET ?', object, (err, res) ->
       if err
-        console.log err
         callback err
       else if callback
         res.id = object.id
         callback null, res
   
   # update existing records
-  update: (object, store, callback) =>
+  update: (object, key, store, callback) =>
     
-    # avoid setting the id
-    id = object[object.key] 
-    key = object.key
-    delete object[object.key]
-    delete object.key
-    
+    # avoid setting the key value
+    id = object[key]
+    delete object[key]
     
     # udpate
-    @connection.query 'UPDATE ' + store + ' SET ? WHERE ' + key + ' = ' + @connection.escape(id), @stringify(object), (err, res) ->
+    @connection.query 'UPDATE ' + store + ' SET ? WHERE ' + key + ' = ' + @connection.escape(id), object, (err, res) ->
       if callback
         callback err, res
   
@@ -106,10 +103,10 @@ class Mysql
       if callback
         callback err, res
   
-  # raw query. 'nuff said. 
+  # raw query. 'nuff said.  # make sure you esacape your query values before using this function!!
   query: (query, callback) =>
     results = []
-    @connection.query @connection.escape(query), (err, rows, fields) ->
+    @connection.query query, (err, rows, fields) ->
       if err
         callback err
       else
@@ -124,6 +121,7 @@ class Mysql
             callback null, results
     
   
+  # NOT IN USE JUST YET ...
   # stringify() - turns anything that isn't a string into JSON
   # this can happen if you have a valid key (field name) who's value is an object or array (common ORM pitfall)
   stringify: (object) =>
@@ -142,13 +140,13 @@ class Mysql
     
   # gets the fields out of a table store to prevent undefined column errors when "oversaving" objects  
   describe: (store, callback) =>
-    valid = []
     @connection.query 'DESC ' + store, (err, rows, fields) ->
       if err
         callback err
       else
+        valid = []
         for row in rows
-          valid.push 
+          valid.push
             name: row.Field
             type: row.Type
         if callback

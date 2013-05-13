@@ -53,9 +53,6 @@ class Responder
   post: (data, credentials, callback) =>
     Instance = @__get_model_instance()
     model = new Instance @, store: @default_store
-    
-    console.log data
-    
     model.create data, (err, res) ->
       if err
         callback err
@@ -101,7 +98,6 @@ class Responder
     # try to set a default model
     if !@model and @default_store
       @model = @default_store.singularize().camelize()
-      console.log 'using default model: ', @model
     Instance = if @model and models[@model] then models[@model] else Flint.Model
     if !Instance
       throw new Error 'Flint.Model class ' + @model + ' does not exist!'

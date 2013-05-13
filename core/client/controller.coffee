@@ -158,16 +158,16 @@ class Controller extends Backbone.Router
   refresh: (callback) =>
     @fetch callback, true
     
-    
   #  get(id)
   #  is a helper method that returns a specific model from the collection by id. 
   #  it will call fetch if the collection is not populated.
-  get: (id, callback, options={}) =>
+  get: (id, callback, refresh=false) =>
     if @list.collection.length is 0
       @fetch =>
-        callback @grab id
+        callback @grab(id),
+        refresh
     else
-      @__get(id, callback, options)
+      callback @grab(id)
         
   __get: (id, callback, options) =>
     model = @list.collection.get(id)
@@ -187,7 +187,8 @@ class Controller extends Backbone.Router
   #  grab(id)
   #  a shortcut to simply call get on the collection assosicated with this controller.
   grab: (id) =>
-    @list.collection.get(id)
+    item = @list.collection.get(id)
+    item
   
   # fresh(id) ensures we are fetching a fresh copy of the model from the server. 
   fresh: (id, callback) =>

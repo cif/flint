@@ -2,7 +2,7 @@
   "author": "Ben Ipsen <email@benipsen.com>",
   "name": "flint",
   "description": "A Modern Application Development Framework",
-  "version": "0.0.91",
+  "version": "0.0.92",
   "repository": {
     "type": "git",
     "url": "http://github.com/cif/flint"

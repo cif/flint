@@ -12,19 +12,18 @@ class Model
   attributes: { }
     
   # takes the reponder and an optional store if specified  
-  constructor: (@responder, options={}, callback) ->
+  constructor: (@responder, options={}) ->
     
     # set options
     @store = options.store if options.store
-    @set options
-    
-    if !@store
-      callback false, 'A store property was not specified for a Flint.Model instance'
-    
+    throw new Error 'A store property was not specified for a Flint.Model instance' if !@store
+      
     # defaults start as attributes
     if @defaults
       @attributes = @defaults
     
+    # set anything passed 
+    @set options
     this
     
   # simple set and get methods
@@ -128,13 +127,13 @@ class Model
         callback null, res
         
   _read: (id, only, callback) =>
-    @responder.database.get id, @store, (err, res) =>
+    @responder.database.get id, @key, @store, (err, res) =>
       if err
         callback err
       else if res
         @set res
         if !only
-          @find_related_models(res, callback)
+          @find_related_models res, callback
         else  
           callback null, @attributes
       else
@@ -162,23 +161,22 @@ class Model
         # assume if key is present we are updating
         if !cleaned.updated_on and @stamp_updated_on
           cleaned.updated_on = @datetime()
-        cleaned.key = @key
-        @responder.database.update cleaned, @store, (err, res) =>
-          if err and callback
+        @responder.database.update cleaned, @key, @store, (err, res) =>
+          if err
             callback err
-          else if callback
-            callback null, @attributes
+          else
+            callback null, cleaned
+            
       else
         # automatic created_on storage
         if !cleaned.created_on and @stamp_created_on
           cleaned.created_on = @datetime()
-        cleaned.key = @key  
-        @responder.database.insert cleaned, @store, (err, res) =>
+        @responder.database.insert cleaned, @key, @store, (err, res) =>
           if err and callback
             callback err
           else if callback
             @set 'id', res.id
-            callback null, @attributes
+            callback null, cleaned
 
   _destroy: (id, callback) =>
     if @get(@key) 
@@ -214,37 +212,31 @@ class Model
               if !value.match(valid_email)
                 return field + ' must be a valid email address.'
             
-                
     # completed         
     return undefined
                 
   # clean() scrubs any invalid attributes present prior to saving 
   # useful for stuctured storage, unused by nosql/document stores
   clean: (callback) =>
-    
     # if the responder engine is mysql based, get fields out of the store 
     if !@fields and @responder.database and @responder.database.isSql
-      @responder.database.describe @store, (fields, err) =>
+      @responder.database.describe @store, (err, fields) =>
         if err
-          throw new Error '[flint] Database storage object ' + @store + ' does not exist!'
-        else  
+          throw new Error 'database storage object ' + @store + ' does not exist!'
+        else
           @fields = fields
-          @_clean(callback)
+          @_clean callback
     else
-      @_clean(callback)
+      @_clean callback
   
   _clean: (callback) =>
     if @fields
       cleaned = {}
       for prop, val of @attributes
-        if typeof @fields is 'array'
-          for column in @fields
-            if prop.toString() is column.name
-              cleaned[prop] = val
-              break
-        else
-          for column, options of @fields      
-            if prop.toString() is column
+          for column, options of @fields
+            if options.name
+              column = options.name
+            if column and prop.toString() is column
               cleaned[prop] = val
               break
               
@@ -350,9 +342,12 @@ class Model
         model = new Flint.Model @responder, { store: related.table }
         
       # collect the keys we're looking for since we'll be using a single query to get related objects the hash them out.
-      keys = []
-      for res in results
-        keys.push res[related.local_key]
+      if results.length and results.length > 0
+        keys = []
+        for res in results
+          keys.push res[related.local_key]
+      else    
+        keys = [results[related.local_key]]
       
       if related.link_table
         # join for mutual relationships
@@ -394,17 +389,20 @@ class Model
           if map.related.link_table
             map.related.foreign_key = map.related.local_link
           
-          for res in results
-            res[map.related.link] = [] if ! first
-            for orm in map.results
-              if orm[map.related.foreign_key] is res[map.related.local_key]
-                if !first
-                  res[map.related.link].push orm
-                else
-                  res[map.related.link] = orm
-            # set the link to false if nothing turned up      
-            if !res[map.related.link] or res[map.related.link].length is 0
-              res[map.related.link] = false
+          if results.length and results.length > 0
+            for res in results
+              res[map.related.link] = [] if ! first
+              for orm in map.results
+                if orm[map.related.foreign_key] is res[map.related.local_key]
+                  if !first
+                    res[map.related.link].push orm
+                  else
+                    res[map.related.link] = orm
+              # set the link to false if nothing turned up      
+              if !res[map.related.link] or res[map.related.link].length is 0
+                res[map.related.link] = false
+          else
+            results[map.related.link] = map.results
         
         else
           for res in results
