@@ -18,26 +18,32 @@ exports.config = {
 	// - database --------------------------------
 
 	db: {
-	 engine: 'mysql',
-	 host: '127.0.0.1',
-	 user: 'flint',
-	 password: 'flint!',
-	 database: 'flint'
+	  engine: 'mysql',
+	  host: '127.0.0.1',
+	  user: 'flint',
+	  password: 'flint!',
+	  database: 'flint'
 	},
   
-	// - smtp --------------------------------
+	// - runtime classes -------------------------------- 	
+	// if you require classes to listen to the web 
+	// and emit to the clients (twitter, etc.) specify them here
+	runtime: [],
 
-	mail_host: '',
-	mail_port: '23',
-	mail_username: '',
-	mail_password: '',
-	mail_smtp: true,
+	// - smtp --------------------------------
+	// "services" are defined in node_modules/nodemailer/lib/wellknown.js
+	// see: https://github.com/andris9/Nodemailer/blob/master/lib/wellknown.js
+	mail_service: 'AuthSMTP',
+	mail_username: 'ac53771',
+	mail_password: 'ppnrqqd7vzdfsd',
+	mail_default_from: 'ACT-HERE <notifications@act-here.com>',
+
 
 	// used for signing cookies in your application. change it.
 	cookie_secret: '#ASUPERSECRETVALUETHATYOUSHOULDCHANGE',
 
  
-  //  - client side compiler options --------------------------------
+    //  - client side compiler options --------------------------------
 	// dependencies
 	compile_dependencies_to: 'public/javascript/dependencies.js',
 	dependencies: 'app/vendor',
@@ -59,11 +65,12 @@ exports.config = {
 	template_engine: 'Handlebars',
 
 	//  - server options --------------------------------
-	// coffeescript 
+	// WARNING! changing these namespaces will likely cause the server to break. 
+	// you are however, welcome to add more directories/namespaces if you wish 
 	compile_resources_to: 'service/responders.js',
 	server_resources: [
-	 {'models' : 'app/coffee/models'},  // warning! changing these namespaces may cause the server to break. 
-	 {'controllers' : 'app/responders'}, // you are however, welcome to add more directories if you wish
+	 {'models' : 'app/coffee/models'},   
+	 {'controllers' : 'app/responders'}, 
 	],
 
 	// ports for server to run on
@@ -71,7 +78,6 @@ exports.config = {
 	server_port: 80,
 	ssl_port: 443,
 	// socket_port: 8080, - ignored for now, autodetect is pretty good.
-
 
 	// -------------------------------- used for building core classes into the flint.js depencency / service 
 	client_build_target: 'app/vendor/flint.js',

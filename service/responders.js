@@ -59,7 +59,7 @@ Flint.Model = (function() {
 
   Model.prototype.attributes = {};
 
-  function Model(responder, options, callback) {
+  function Model(responder, options) {
     this.responder = responder;
     if (options == null) options = {};
     this.datetime = __bind(this.datetime, this);
@@ -86,11 +86,11 @@ Flint.Model = (function() {
     this.set = __bind(this.set, this);
     this.get = __bind(this.get, this);
     if (options.store) this.store = options.store;
-    this.set(options);
     if (!this.store) {
-      callback(false, 'A store property was not specified for a Flint.Model instance');
+      throw new Error('A store property was not specified for a Flint.Model instance');
     }
     if (this.defaults) this.attributes = this.defaults;
+    this.set(options);
     this;
   }
 
@@ -184,7 +184,7 @@ Flint.Model = (function() {
 
   Model.prototype._read = function(id, only, callback) {
     var _this = this;
-    return this.responder.database.get(id, this.store, function(err, res) {
+    return this.responder.database.get(id, this.key, this.store, function(err, res) {
       if (err) {
         return callback(err);
       } else if (res) {
@@ -220,28 +220,26 @@ Flint.Model = (function() {
     return this.clean(function(err, cleaned) {
       if (err) callback(err);
       if (_this.get(_this.key)) {
-        if (!cleaned.updated_on && _this.stamp_updated_on) {
+        if (!cleaned.updated_on && _this.stamp_update) {
           cleaned.updated_on = _this.datetime();
         }
-        cleaned.key = _this.key;
-        return _this.responder.database.update(cleaned, _this.store, function(err, res) {
-          if (err && callback) {
+        return _this.responder.database.update(cleaned, _this.key, _this.store, function(err, res) {
+          if (err) {
             return callback(err);
-          } else if (callback) {
-            return callback(null, _this.attributes);
+          } else {
+            return callback(null, cleaned);
           }
         });
       } else {
-        if (!cleaned.created_on && _this.stamp_created_on) {
+        if (!cleaned.created_on && _this.stamp_create) {
           cleaned.created_on = _this.datetime();
         }
-        cleaned.key = _this.key;
-        return _this.responder.database.insert(cleaned, _this.store, function(err, res) {
+        return _this.responder.database.insert(cleaned, _this.key, _this.store, function(err, res) {
           if (err && callback) {
             return callback(err);
           } else if (callback) {
             _this.set('id', res.id);
-            return callback(null, _this.attributes);
+            return callback(null, cleaned);
           }
         });
       }
@@ -295,9 +293,9 @@ Flint.Model = (function() {
   Model.prototype.clean = function(callback) {
     var _this = this;
     if (!this.fields && this.responder.database && this.responder.database.isSql) {
-      return this.responder.database.describe(this.store, function(fields, err) {
+      return this.responder.database.describe(this.store, function(err, fields) {
         if (err) {
-          throw new Error('[flint] Database storage object ' + _this.store + ' does not exist!');
+          throw new Error('database storage object ' + _this.store + ' does not exist!');
         } else {
           _this.fields = fields;
           return _this._clean(callback);
@@ -309,29 +307,19 @@ Flint.Model = (function() {
   };
 
   Model.prototype._clean = function(callback) {
-    var cleaned, column, options, prop, val, _i, _len, _ref, _ref2, _ref3;
+    var cleaned, column, options, prop, val, _ref, _ref2;
     if (this.fields) {
       cleaned = {};
       _ref = this.attributes;
       for (prop in _ref) {
         val = _ref[prop];
-        if (typeof this.fields === 'array') {
-          _ref2 = this.fields;
-          for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-            column = _ref2[_i];
-            if (prop.toString() === column.name) {
-              cleaned[prop] = val;
-              break;
-            }
-          }
-        } else {
-          _ref3 = this.fields;
-          for (column in _ref3) {
-            options = _ref3[column];
-            if (prop.toString() === column) {
-              cleaned[prop] = val;
-              break;
-            }
+        _ref2 = this.fields;
+        for (column in _ref2) {
+          options = _ref2[column];
+          if (options.name) column = options.name;
+          if (column && prop.toString() === column) {
+            cleaned[prop] = val;
+            break;
           }
         }
       }
@@ -434,10 +422,14 @@ Flint.Model = (function() {
           store: related.table
         });
       }
-      keys = [];
-      for (_i = 0, _len = results.length; _i < _len; _i++) {
-        res = results[_i];
-        keys.push(res[related.local_key]);
+      if (results.length && results.length > 0) {
+        keys = [];
+        for (_i = 0, _len = results.length; _i < _len; _i++) {
+          res = results[_i];
+          keys.push(res[related.local_key]);
+        }
+      } else {
+        keys = [results[related.local_key]];
       }
       if (related.link_table) {
         query = {
@@ -471,23 +463,27 @@ Flint.Model = (function() {
           if (map.related.link_table) {
             map.related.foreign_key = map.related.local_link;
           }
-          for (_j = 0, _len2 = results.length; _j < _len2; _j++) {
-            res = results[_j];
-            if (!first) res[map.related.link] = [];
-            _ref = map.results;
-            for (_k = 0, _len3 = _ref.length; _k < _len3; _k++) {
-              orm = _ref[_k];
-              if (orm[map.related.foreign_key] === res[map.related.local_key]) {
-                if (!first) {
-                  res[map.related.link].push(orm);
-                } else {
-                  res[map.related.link] = orm;
+          if (results.length && results.length > 0) {
+            for (_j = 0, _len2 = results.length; _j < _len2; _j++) {
+              res = results[_j];
+              if (!first) res[map.related.link] = [];
+              _ref = map.results;
+              for (_k = 0, _len3 = _ref.length; _k < _len3; _k++) {
+                orm = _ref[_k];
+                if (orm[map.related.foreign_key] === res[map.related.local_key]) {
+                  if (!first) {
+                    res[map.related.link].push(orm);
+                  } else {
+                    res[map.related.link] = orm;
+                  }
                 }
               }
+              if (!res[map.related.link] || res[map.related.link].length === 0) {
+                res[map.related.link] = false;
+              }
             }
-            if (!res[map.related.link] || res[map.related.link].length === 0) {
-              res[map.related.link] = false;
-            }
+          } else {
+            results[map.related.link] = map.results;
           }
         } else {
           for (_l = 0, _len4 = results.length; _l < _len4; _l++) {
@@ -583,7 +579,7 @@ Flint.Mysql = (function() {
             row = rows[_i];
             for (prop in row) {
               value = row[prop];
-              row[prop] = _this.objectify(value);
+              row[prop] = value;
             }
             results.push(row);
           }
@@ -593,29 +589,28 @@ Flint.Mysql = (function() {
     });
   };
 
-  Mysql.prototype.get = function(id, store, callback) {
+  Mysql.prototype.get = function(id, key, store, callback) {
     var _this = this;
-    return this.connection.query('SELECT * FROM ' + store + ' WHERE id = ' + this.connection.escape(id), function(err, rows, fields) {
+    return this.connection.query('SELECT * FROM ' + store + ' WHERE ' + key + ' = ' + this.connection.escape(id), function(err, rows, fields) {
       var prop, res, value;
-      if (err && callback) {
-        return callback(err);
-      } else if (callback) {
+      if (err) callback(err);
+      if (rows && rows.length > 0) {
         res = rows[0];
         for (prop in res) {
           value = res[prop];
-          res[prop] = _this.objectify(value);
+          res[prop] = value;
         }
-        return callback(null, rows[0]);
+        return callback(null, res);
+      } else {
+        return callback(null, false);
       }
     });
   };
 
-  Mysql.prototype.insert = function(object, store, callback) {
-    object[object.key] = this.uuid();
-    delete object.key;
-    return this.connection.query('INSERT INTO ' + store + ' SET ?', this.stringify(object), function(err, res) {
+  Mysql.prototype.insert = function(object, key, store, callback) {
+    object[key] = this.uuid();
+    return this.connection.query('INSERT INTO ' + store + ' SET ?', object, function(err, res) {
       if (err) {
-        console.log(err);
         return callback(err);
       } else if (callback) {
         res.id = object.id;
@@ -624,13 +619,11 @@ Flint.Mysql = (function() {
     });
   };
 
-  Mysql.prototype.update = function(object, store, callback) {
-    var id, key;
-    id = object[object.key];
-    key = object.key;
-    delete object[object.key];
-    delete object.key;
-    return this.connection.query('UPDATE ' + store + ' SET ? WHERE ' + key + ' = ' + this.connection.escape(id), this.stringify(object), function(err, res) {
+  Mysql.prototype.update = function(object, key, store, callback) {
+    var id;
+    id = object[key];
+    delete object[key];
+    return this.connection.query('UPDATE ' + store + ' SET ? WHERE ' + key + ' = ' + this.connection.escape(id), object, function(err, res) {
       if (callback) return callback(err, res);
     });
   };
@@ -649,7 +642,7 @@ Flint.Mysql = (function() {
   Mysql.prototype.query = function(query, callback) {
     var results;
     results = [];
-    return this.connection.query(this.connection.escape(query), function(err, rows, fields) {
+    return this.connection.query(query, function(err, rows, fields) {
       var prop, row, value, _i, _len;
       if (err) {
         return callback(err);
@@ -689,13 +682,12 @@ Flint.Mysql = (function() {
   };
 
   Mysql.prototype.describe = function(store, callback) {
-    var valid;
-    valid = [];
     return this.connection.query('DESC ' + store, function(err, rows, fields) {
-      var row, _i, _len;
+      var row, valid, _i, _len;
       if (err) {
         return callback(err);
       } else {
+        valid = [];
         for (_i = 0, _len = rows.length; _i < _len; _i++) {
           row = rows[_i];
           valid.push({
@@ -731,6 +723,7 @@ Flint.Responder = (function() {
     this.config = config;
     this.require = __bind(this.require, this);
     this.finish = __bind(this.finish, this);
+    this.notify = __bind(this.notify, this);
     this["delete"] = __bind(this["delete"], this);
     this.put = __bind(this.put, this);
     this.post = __bind(this.post, this);
@@ -767,9 +760,12 @@ Flint.Responder = (function() {
     });
     if (data.id) {
       return model.read(data.id, function(err, res) {
-        if (err) callback(err);
-        delete res.store;
-        return callback(null, res);
+        if (err) {
+          return callback(err);
+        } else {
+          delete res.store;
+          return callback(null, res);
+        }
       });
     } else {
       return model.find(false, callback);
@@ -782,7 +778,6 @@ Flint.Responder = (function() {
     model = new Instance(this, {
       store: this.default_store
     });
-    console.log(data);
     return model.create(data, function(err, res) {
       if (err) {
         return callback(err);
@@ -826,6 +821,32 @@ Flint.Responder = (function() {
     return model.destory(data.id, callback);
   };
 
+  Responder.prototype.notify = function(file, message, callback) {
+    var content, ent, hbs, mailer, template, transport;
+    if (!message.from) message.from = this.config.mail_default_from;
+    if (!message.text) {
+      message.text = 'This is an HTML email. Please enable HTML in your mail client';
+    }
+    if (!message.to && !message.from) {
+      callback(new Error('Both to: and from: address must be specified in message argument.'));
+    }
+    hbs = this.require('hbs');
+    ent = this.require('ent');
+    content = fs.readFileSync(path.resolve(this.config.base + 'app/views/' + file), 'utf8');
+    template = hbs.handlebars.compile(content);
+    content = template(message);
+    message.html = ent.decode(content);
+    mailer = this.require('nodemailer');
+    transport = mailer.createTransport('SMTP', {
+      service: this.config.mail_service,
+      auth: {
+        user: this.config.mail_username,
+        pass: this.config.mail_password
+      }
+    });
+    return transport.sendMail(message, callback);
+  };
+
   Responder.prototype.finish = function() {
     return this.database.close_connection();
   };
@@ -838,7 +859,6 @@ Flint.Responder = (function() {
     var Instance;
     if (!this.model && this.default_store) {
       this.model = this.default_store.singularize().camelize();
-      console.log('using default model: ', this.model);
     }
     Instance = this.model && models[this.model] ? models[this.model] : Flint.Model;
     if (!Instance) {
@@ -848,39 +868,6 @@ Flint.Responder = (function() {
   };
 
   return Responder;
-
-})();
-
-Flint.Smtp = (function() {
-
-  __extends(Smtp, Flint.Responder);
-
-  function Smtp() {
-    this.notify = __bind(this.notify, this);
-    Smtp.__super__.constructor.apply(this, arguments);
-  }
-
-  Smtp.prototype.notify = function(data, file, callback) {
-    var content, decoded, ent, fs, hbs, path, server, smtp, template;
-    smtp = this.require('emailjs');
-    server = smtp.server.connect({
-      host: data.config.mail_host,
-      user: data.config.mail_username,
-      password: data.config.mail_password,
-      port: data.config.mail_port,
-      ssl: data.config.mail_ssl
-    });
-    fs = require('fs');
-    path = require('path');
-    ent = this.require('ent');
-    hbs = this.require('hbs');
-    content = fs.readFileSync(path.resolve(data.config.base + 'app/views/' + file), 'utf8');
-    template = hbs.handlebars.compile(content);
-    content = template(data);
-    return decoded = ent.decode(content);
-  };
-
-  return Smtp;
 
 })();
 
@@ -984,8 +971,34 @@ controllers.Objects = (function() {
 
   function Objects() {
     this.less_than_two = __bind(this.less_than_two, this);
+    this.testing_patterns = __bind(this.testing_patterns, this);
+    this.xml_testing = __bind(this.xml_testing, this);
+    this.mail_testing = __bind(this.mail_testing, this);
     Objects.__super__.constructor.apply(this, arguments);
   }
+
+  Objects.prototype.mail_testing = function(data, credentials, callback) {
+    var options;
+    options = {
+      to: 'Ben Ipsen <email@benipsen.com>',
+      subject: 'Testing Notifications',
+      field: 'HELLO',
+      value: 'WORLD'
+    };
+    return this.notify('test.html', options, callback);
+  };
+
+  Objects.prototype.xml_testing = function(data, cookies, callback) {
+    return callback(null, {
+      xml: 'test.xml',
+      book_title: 'HELLO'
+    });
+  };
+
+  Objects.prototype.testing_patterns = function(data, cookies, callback) {
+    console.log(data);
+    return callback(null, 'hello!');
+  };
 
   Objects.prototype.less_than_two = function(data, credentials, callback) {
     var query, test;

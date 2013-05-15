@@ -33,25 +33,12 @@ controllers.Application = (function() {
   }
 
   Application.prototype.initialize = function() {
-    var test;
-    var _this = this;
     this.isTouch = navigator.userAgent.match(/(iPhone|iPod|iPad|Android|BlackBerry)/);
     this.isOnline = navigator.onLine;
     this.sync = new Flint.Sync;
     this.notifications = new Flint.Notifications(this);
     this.helpers = new views.Helpers;
     this.controllers = [];
-    test = new models.Widget();
-    test.set('owner_id', '123');
-    test.set('color', 'fushia');
-    test.save(null, {
-      success: function(eh) {
-        return console.log(eh);
-      },
-      error: function(ya) {
-        return console.log(ya);
-      }
-    });
     if (console && console.log) console.log('[flint] Application initialized.');
     if (Backbone.history) Backbone.history.start();
     return this;
@@ -77,6 +64,7 @@ controllers.Widgets = (function() {
   __extends(Widgets, Flint.Controller);
 
   function Widgets() {
+    this.email_testing = __bind(this.email_testing, this);
     Widgets.__super__.constructor.apply(this, arguments);
   }
 
@@ -103,6 +91,8 @@ controllers.Widgets = (function() {
       return _this.form.render('widgets/form');
     });
   };
+
+  Widgets.prototype.email_testing = function() {};
 
   return Widgets;
 

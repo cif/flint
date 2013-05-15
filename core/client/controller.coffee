@@ -10,10 +10,10 @@
 class Controller extends Backbone.Router
   
   # Specify a template path for each CRUD action. 
-  template_create : 'default/create'
-  template_edit   : 'default/edit'
-  template_view   : 'default/view'
-  template_list   : 'default/list'
+  template_create : false
+  template_edit   : false
+  template_view   : false
+  template_list   : false
   
   # Specify the collection and model classes if the exist.
   # Note that these are strings and not references to the classes themselves.    

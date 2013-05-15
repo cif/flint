@@ -25,8 +25,7 @@ class Responder
       # mongo or other nosql for document based apps  
       
     this
-  
-  
+    
   # called before and after the primary request method.
   before: ->
     true
@@ -43,10 +42,10 @@ class Responder
       model.read data.id, (err, res) ->
         if err
           callback err
-        
-        # remove the generic store property
-        delete res.store
-        callback null, res
+        else
+          # remove the generic store property
+          delete res.store
+          callback null, res
     else
       model.find false, callback
       
@@ -83,10 +82,45 @@ class Responder
     model = new Instance @, store: @default_store
     model.destory data.id, callback
   
+  
+  # notifies using the emailjs dep
+  notify: (file, message, callback) =>
+    
+    message.from = @config.mail_default_from if ! message.from
+    message.text = 'This is an HTML email. Please enable HTML in your mail client' if !message.text
+    if !message.to and !message.from
+      callback new Error 'Both to: and from: address must be specified in message argument.'
+
+    # parse the mail template content
+    hbs = @require 'hbs'
+    ent = @require 'ent'
+    content = fs.readFileSync(path.resolve(@config.base + 'app/views/' + file), 'utf8')
+    template = hbs.handlebars.compile(content)
+    content = template(message)
+    message.html = ent.decode(content)
+
+
+    # send via smtp configuration.
+    mailer = @require 'nodemailer'
+    transport = mailer.createTransport 'SMTP',
+                  service: @config.mail_service
+                  auth:
+                    user: @config.mail_username
+                    pass: @config.mail_password 
+
+    transport.sendMail message, (err, res) =>
+      if err
+        console.log err
+        throw new Error err
+      else
+        callback null, res  
+
+
+
+
   # closes the database connection  
   finish: =>
     @database.close_connection()
-  
     
   # resolves and requires path to where flint is installed when loading a flint module
   require: (module) =>

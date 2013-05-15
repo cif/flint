@@ -209,13 +209,13 @@ Flint.Controller = (function() {
     Controller.__super__.constructor.apply(this, arguments);
   }
 
-  Controller.prototype.template_create = 'default/create';
+  Controller.prototype.template_create = false;
 
-  Controller.prototype.template_edit = 'default/edit';
+  Controller.prototype.template_edit = false;
 
-  Controller.prototype.template_view = 'default/view';
+  Controller.prototype.template_view = false;
 
-  Controller.prototype.template_list = 'default/list';
+  Controller.prototype.template_list = false;
 
   Controller.prototype.collection = false;
 
@@ -330,15 +330,15 @@ Flint.Controller = (function() {
     return this.fetch(callback, true);
   };
 
-  Controller.prototype.get = function(id, callback, options) {
+  Controller.prototype.get = function(id, callback, refresh) {
     var _this = this;
-    if (options == null) options = {};
+    if (refresh == null) refresh = false;
     if (this.list.collection.length === 0) {
       return this.fetch(function() {
-        return callback(_this.grab(id));
+        return callback(_this.grab(id), refresh);
       });
     } else {
-      return this.__get(id, callback, options);
+      return callback(this.grab(id));
     }
   };
 
@@ -363,7 +363,9 @@ Flint.Controller = (function() {
   };
 
   Controller.prototype.grab = function(id) {
-    return this.list.collection.get(id);
+    var item;
+    item = this.list.collection.get(id);
+    return item;
   };
 
   Controller.prototype.fresh = function(id, callback) {
@@ -951,6 +953,7 @@ Flint.Helpers = (function() {
       });
     }
     value = model && model.get && model.get(field) ? model.get(field) : '';
+    if (value === '' && model && model[field]) value = model[field];
     return new Handlebars.SafeString('<input type="text" name="' + field + '" value="' + value.replace(/"/g, '&quot;') + '" ' + attrs.join(' ') + '/>');
   };
 
@@ -963,6 +966,7 @@ Flint.Helpers = (function() {
       });
     }
     value = model && model.get && model.get(field) ? model.get(field) : '';
+    if (value === '' && model && model[field]) value = model[field];
     return new Handlebars.SafeString('<input name="' + field + '" value="' + value.replace(/"/g, '&quot;') + '" ' + attrs.join(' ') + '/>');
   };
 
@@ -1059,6 +1063,7 @@ Flint.Helpers = (function() {
       });
     }
     value = model && model.get && model.get(field) ? model.get(field) : '';
+    if (value === '' && model && model[field]) value = model[field];
     return new Handlebars.SafeString('<textarea name="' + field + '" ' + attrs.join(' ') + '>' + value + '</textarea>');
   };
 

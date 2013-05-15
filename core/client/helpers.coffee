@@ -92,6 +92,8 @@ class Helpers
       attrs.push key + '="' + value + '"'
     ) if attributes
     value = if model and model.get and model.get(field) then model.get(field) else ''
+    if value is '' and model and model[field]
+      value = model[field]
     new Handlebars.SafeString('<input type="text" name="'+field+'" value="'+value.replace(/"/g,'&quot;')+'" ' + attrs.join(' ') + '/>')
     
   input: (model, field, attributes) ->
@@ -100,6 +102,8 @@ class Helpers
       attrs.push key + '="' + value + '"'
     ) if attributes
     value = if model and model.get and model.get(field) then model.get(field) else ''
+    if value is '' and model and model[field]
+      value = model[field]
     new Handlebars.SafeString('<input name="'+field+'" value="'+value.replace(/"/g,'&quot;')+'" ' + attrs.join(' ') + '/>')
   
   password: (model, field, attributes) ->
@@ -177,6 +181,8 @@ class Helpers
       attrs.push key + '="' + value + '"'
     ) if attributes
     value = if model and model.get and model.get(field) then model.get(field) else ''
+    if value is '' and model and model[field]
+      value = model[field]
     new Handlebars.SafeString('<textarea name="'+field+'" ' + attrs.join(' ') + '>'+value+'</textarea>')
   
     

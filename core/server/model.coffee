@@ -67,6 +67,7 @@ class Model
       if err
         callback err
       else if res
+        @set res[0]
         callback null, res[0]
       else
         callback null, false
@@ -159,7 +160,7 @@ class Model
       callback err if err
       if @get(@key)
         # assume if key is present we are updating
-        if !cleaned.updated_on and @stamp_updated_on
+        if !cleaned.updated_on and @stamp_update
           cleaned.updated_on = @datetime()
         @responder.database.update cleaned, @key, @store, (err, res) =>
           if err
@@ -169,7 +170,7 @@ class Model
             
       else
         # automatic created_on storage
-        if !cleaned.created_on and @stamp_created_on
+        if !cleaned.created_on and @stamp_create
           cleaned.created_on = @datetime()
         @responder.database.insert cleaned, @key, @store, (err, res) =>
           if err and callback
@@ -189,7 +190,8 @@ class Model
     else if callback
       callback new Error 'Trying to destroy '+@store+' record without the key attribute'
   
-  
+
+
   # data integrity methods.
   
   # standard validatation available client and server side - if validate is overriden... ?
@@ -245,7 +247,18 @@ class Model
     else
       callback null, @attributes
   
-    
+  
+  # manipulation shortcuts
+  
+  increment: (field, callback) =>
+    @responder.database.bump @store, field, 1, @key, @attributes[@key], callback
+
+  decrement: (field, callback) =>
+    @responder.database.bump @store, field, -1, @key, @attributes[@key], callback
+  
+  bump: (field, value, callback) =>
+    @responder.database.bump @store, field, value, @key, @attributes[@key], callback
+
   # object relationship modeling methods
   
   # find_related_objects()

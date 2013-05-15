@@ -17,3 +17,7 @@ class Widgets extends Flint.Controller
     @fetch (todos) =>
       @list.render 'widgets/list', todos.models
       @form.render 'widgets/form'
+
+  email_testing: =>
+
+    

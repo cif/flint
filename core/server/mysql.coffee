@@ -56,14 +56,16 @@ class Mysql
   get: (id, key, store, callback) =>
     
     @connection.query 'SELECT * FROM ' + store + ' WHERE ' + key + ' = ' + @connection.escape(id), (err, rows, fields) =>
-      if err and callback
+      if err
         callback err
-      else if callback
-        
+      
+      if rows and rows.length > 0
         res = rows[0]
         for prop,value of res
           res[prop] = value
-        callback null, rows[0]
+        callback null, res
+      else
+        callback null, false  
     
   # insert new records
   insert: (object, key, store, callback) =>
@@ -87,9 +89,8 @@ class Mysql
     delete object[key]
     
     # udpate
-    @connection.query 'UPDATE ' + store + ' SET ? WHERE ' + key + ' = ' + @connection.escape(id), object, (err, res) ->
-      if callback
-        callback err, res
+    @connection.query 'UPDATE ' + store + ' SET ? WHERE ' + key + ' = ' + @connection.escape(id), object, callback
+       
   
   # delete a record
   destroy: (object, store, callback) =>
@@ -99,10 +100,13 @@ class Mysql
     delete object[object.key]
     delete object.key
     
-    @connection.query 'DELETE FROM ' + store + ' WHERE ' + key + ' = ' + @connection.escape(id), (err, res) ->
-      if callback
-        callback err, res
+    @connection.query 'DELETE FROM ' + store + ' WHERE ' + key + ' = ' + @connection.escape(id), callback
   
+
+  # increment / decrement
+  bump: (store, field, value, key, id, callback) =>
+    @connection.query 'UPDATE ' + store + ' SET '+field+'='+field+'+'+value+' WHERE ' + key + ' = ' + @connection.escape(id), callback
+
   # raw query. 'nuff said.  # make sure you esacape your query values before using this function!!
   query: (query, callback) =>
     results = []
