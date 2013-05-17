@@ -27,6 +27,7 @@ class Helpers
     JSON.stringify(object)
     
   include: (file, data) =>
+    fs = require 'fs'
     ent = @require 'ent'
     hbs = @require 'hbs'
     content = fs.readFileSync(path.resolve(@config.base + 'app/views/' + file), 'utf8')

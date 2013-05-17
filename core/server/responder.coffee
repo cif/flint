@@ -92,6 +92,7 @@ class Responder
       callback new Error 'Both to: and from: address must be specified in message argument.'
 
     # parse the mail template content
+    fs = require 'fs'
     hbs = @require 'hbs'
     ent = @require 'ent'
     content = fs.readFileSync(path.resolve(@config.base + 'app/views/' + file), 'utf8')
@@ -110,8 +111,7 @@ class Responder
 
     transport.sendMail message, (err, res) =>
       if err
-        console.log err
-        throw new Error err
+        callback err
       else
         callback null, res  
 

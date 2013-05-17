@@ -33,7 +33,8 @@ Flint.Helpers = (function() {
   };
 
   Helpers.prototype.include = function(file, data) {
-    var content, decoded, ent, hbs, template;
+    var content, decoded, ent, fs, hbs, template;
+    fs = require('fs');
     ent = this.require('ent');
     hbs = this.require('hbs');
     content = fs.readFileSync(path.resolve(this.config.base + 'app/views/' + file), 'utf8');
@@ -320,7 +321,7 @@ Flint.Model = (function() {
         _ref2 = this.fields;
         for (column in _ref2) {
           options = _ref2[column];
-          if (options.name) column = options.name;
+          if (optiosn && options.name) column = options.name;
           if (column && prop.toString() === column) {
             cleaned[prop] = val;
             break;
@@ -864,8 +865,7 @@ Flint.Responder = (function() {
     });
     return transport.sendMail(message, function(err, res) {
       if (err) {
-        console.log(err);
-        throw new Error(err);
+        return callback(err);
       } else {
         return callback(null, res);
       }

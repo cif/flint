@@ -180,15 +180,11 @@ class Model
             callback null, cleaned
 
   _destroy: (id, callback) =>
-    if @get(@key) 
-      @attributes.key = @key
-      @responder.database.destroy @attributes, @store, (err, res) ->
-          if err and callback
-            callback err
-          else if callback
-            callback null, @attributes
-    else if callback
-      callback new Error 'Trying to destroy '+@store+' record without the key attribute'
+    @responder.database.destroy id, @key, @store, (err, res) =>
+        if err
+          callback err
+        else
+          callback null, @attributes
   
 
 
@@ -236,7 +232,7 @@ class Model
       cleaned = {}
       for prop, val of @attributes
           for column, options of @fields
-            if options.name
+            if options and options.name
               column = options.name
             if column and prop.toString() is column
               cleaned[prop] = val

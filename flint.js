@@ -75,10 +75,8 @@ exports.config = {
 
 	// ports for server to run on
 	develop_port: 3000,
-	server_port: 80,
-	ssl_port: 443,
-	// socket_port: 8080, - ignored for now, autodetect is pretty good.
-
+	server_port: 8080,  // for SMTP and other sockets to work, you should forward traffic on 80 to 8080 with iptables or apache
+	
 	// -------------------------------- used for building core classes into the flint.js depencency / service 
 	client_build_target: 'app/vendor/flint.js',
 	server_build_target: 'service/flint.js'

@@ -93,13 +93,7 @@ class Mysql
        
   
   # delete a record
-  destroy: (object, store, callback) =>
-    
-    id = object[object.key] 
-    key = object.key
-    delete object[object.key]
-    delete object.key
-    
+  destroy: (id, key, store, callback) =>
     @connection.query 'DELETE FROM ' + store + ' WHERE ' + key + ' = ' + @connection.escape(id), callback
   
 

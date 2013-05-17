@@ -316,6 +316,7 @@ Flint.Model = (function() {
         _ref2 = this.fields;
         for (column in _ref2) {
           options = _ref2[column];
+          console.log(this.store, options);
           if (options.name) column = options.name;
           if (column && prop.toString() === column) {
             cleaned[prop] = val;

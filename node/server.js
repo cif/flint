@@ -31,7 +31,7 @@ path = require('path');
 		for(route in routes){
 			
 			app.all(route, respondToCustomRouteRequest);
-			
+			app.options(route, respondToCustomRouteRequest);
 		}
 
     // all other requests are assumed to be REST API calls
@@ -42,9 +42,13 @@ path = require('path');
 	
 	// sends the final response from the responder (controller) method
   var sendFinalResponse = function(err, res, response){
+		
+		response = response || {};
+		// set access control for cross domain requests, (could be true for errors as well)
+		if(response.public){ res.header("Access-Control-Allow-Origin", "*"); }
 			
 	  if(!err){
-     	
+    	
 			if(response.emit){ 
 				
 				// if our response is told emit to io, send it along.
@@ -54,6 +58,7 @@ path = require('path');
 				response = response.emit.data;
 				
 			}
+
 			
 			// check for denied access.
 			if (response.denied){
@@ -87,13 +92,13 @@ path = require('path');
        
 			}
 		
-		// return  error as a string with 500 status
+	// return  error as a string with 500 status
     } else {
      
 			
        res.set('Content-Type','text/plain');
        res.status(500);
-			 res.send(err.toString());
+	   res.send(err.toString());
       	
     }
 

@@ -23,6 +23,8 @@ argv = optimist
   .alias('f','file')
   .describe('f','Specify a configuration file to work with.')   
   .default('f','./flint.js')
+  .alias('r','run')
+  .describe('r','Run the flint server in production mode.')   
   .alias('b','build')
   .describe('b','Compiles the core flint libraries to the build targets')
   // todo
@@ -220,7 +222,7 @@ try {
   }
   
   // if nothing was specified, ofter some guidance
-  if(!argv.build && !argv.compile && !argv.watch && !argv.server && !argv.package && !argv.new && !argv.generate){
+  if(!argv.build && !argv.compile && !argv.watch && !argv.server && !argv.package && !argv.new && !argv.generate && !argv.run){
   
     console.log(optimist.help())
   
