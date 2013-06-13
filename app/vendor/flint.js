@@ -1529,8 +1529,10 @@ Flint.Sync = (function() {
     this.broadcast = __bind(this.broadcast, this);
     this.on = __bind(this.on, this);
     Backbone.sync = this.backbone;
-    this.io = io.connect('http://' + location.host);
-    this.io.on('data', this.broadcast);
+    if (enable_socket_io) {
+      this.io = io.connect('http://' + location.host);
+      this.io.on('data', this.broadcast);
+    }
     this;
   }
 

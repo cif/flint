@@ -43,12 +43,17 @@ class Helpers
   delay: (ms, func) =>
     @timer = setTimeout func, ms
     @timer
-    
+  
+  stop_then_delay: (ms, func) =>
+    window.clearTimeout @timer
+    @delay(ms, func) if ms and func
+  
+  # waits for a css transition to complete before calling back  
   after_transition: (element, callback) =>
     # unbind current transitions
     events = 'webkitTransitionEnd transitionend oTransitionEnd'
     $(element).unbind events
-    $(element).bind events, =>
+    $(element).bind events, ->
       $(element).unbind events
       callback()            
   

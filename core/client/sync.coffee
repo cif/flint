@@ -7,8 +7,9 @@ class Sync
   # overrides backbone.sync
   constructor: (enable_socket_io=true) ->
     Backbone.sync = @backbone
-    @io = io.connect('http://' + location.host)
-    @io.on 'data', @broadcast
+    if enable_socket_io
+      @io = io.connect('http://' + location.host)
+      @io.on 'data', @broadcast
     this
   
   # this method allows application classes to listen for socket.io events

@@ -10,13 +10,12 @@ exports.config = {
 		// example 
 		// '/users/profile/:username?' : 'Users.profile'
 
-		// documentation (delete this. it will be broken on new apps)
+		// documentation (this will be broken on new apps)
 		'/docs/:file?' : 'Docs.static'
 
 	},
 
 	// - database --------------------------------
-
 	db: {
 	  engine: 'mysql',
 	  host: '127.0.0.1',
@@ -27,23 +26,22 @@ exports.config = {
   
 	// - runtime classes -------------------------------- 	
 	// if you require classes to listen to the web 
-	// and emit to the clients (twitter, etc.) specify them here
+	// and emit to clients (twitter, etc.) specify them here e.g. ['TwitterFireHose']
 	runtime: [],
 
 	// - smtp --------------------------------
 	// "services" are defined in node_modules/nodemailer/lib/wellknown.js
 	// see: https://github.com/andris9/Nodemailer/blob/master/lib/wellknown.js
 	mail_service: 'AuthSMTP',
-	mail_username: 'ac53771',
-	mail_password: 'ppnrqqd7vzdfsd',
-	mail_default_from: 'ACT-HERE <notifications@act-here.com>',
+	mail_username: '',
+	mail_password: '',
+	mail_default_from: 'My App <notifications@my-app.com>',
 
-
-	// used for signing cookies in your application. change it.
+	// used for signing cookies. change it.
 	cookie_secret: '#ASUPERSECRETVALUETHATYOUSHOULDCHANGE',
-
  
-    //  - client side compiler options --------------------------------
+ 
+  //  - client side compiler options --------------------------------
 	// dependencies
 	compile_dependencies_to: 'public/javascript/dependencies.js',
 	dependencies: 'app/vendor',
@@ -61,12 +59,12 @@ exports.config = {
 
 	// templates
 	compile_templates_to: 'public/javascript/templates.js',
-	templates: 'app/templates',
+	templates: 'app/handlebars',
 	template_engine: 'Handlebars',
 
 	//  - server options --------------------------------
-	// WARNING! changing these namespaces will likely cause the server to break. 
-	// you are however, welcome to add more directories/namespaces if you wish 
+	// WARNING! changing these namespaces will cause the server to break. 
+	// you can add more directories/namespaces to your backend if you need to. 
 	compile_resources_to: 'service/responders.js',
 	server_resources: [
 	 {'models' : 'app/coffee/models'},   

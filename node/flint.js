@@ -18,6 +18,9 @@ argv = optimist
   .default('q', false)
   .alias('c','compile')
   .describe('c','Compiles coffee, stylus, handlebars, templates and dependencies')
+  .alias('m','migrate')
+  .describe('m','Synchronizes table columns with models fields (MySQL only)')
+  .default('m','all')
   .alias('p','package')
   .describe('p','Packages and minifies all javascript into a production target')
   .alias('f','file')
@@ -176,6 +179,14 @@ try {
       
       
     }
+    
+  }
+  
+  // migration tools (mysql only for now)
+  if ( argv.migrate ){
+    
+    migrator = require('./migrator');
+    
     
   }
   

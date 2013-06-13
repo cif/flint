@@ -33,7 +33,8 @@ Flint.Helpers = (function() {
   };
 
   Helpers.prototype.include = function(file, data) {
-    var content, decoded, ent, hbs, template;
+    var content, decoded, ent, fs, hbs, template;
+    fs = require('fs');
     ent = this.require('ent');
     hbs = this.require('hbs');
     content = fs.readFileSync(path.resolve(this.config.base + 'app/views/' + file), 'utf8');
@@ -66,6 +67,9 @@ Flint.Model = (function() {
     this.find_related = __bind(this.find_related, this);
     this.parse_relations = __bind(this.parse_relations, this);
     this.find_related_models = __bind(this.find_related_models, this);
+    this.bump = __bind(this.bump, this);
+    this.decrement = __bind(this.decrement, this);
+    this.increment = __bind(this.increment, this);
     this._clean = __bind(this._clean, this);
     this.clean = __bind(this.clean, this);
     this.validate = __bind(this.validate, this);
@@ -89,6 +93,7 @@ Flint.Model = (function() {
     if (!this.store) {
       throw new Error('A store property was not specified for a Flint.Model instance');
     }
+    this.attributes = {};
     if (this.defaults) this.attributes = this.defaults;
     this.set(options);
     this;
@@ -130,6 +135,7 @@ Flint.Model = (function() {
       if (err) {
         return callback(err);
       } else if (res) {
+        _this.set(res[0]);
         return callback(null, res[0]);
       } else {
         return callback(null, false);
@@ -155,7 +161,10 @@ Flint.Model = (function() {
 
   Model.prototype._create = function(props, callback) {
     var validate;
-    if (props) this.attributes = this.extend(this.attributes, props);
+    if (props) {
+      this.attributes = {};
+      this.attributes = this.extend(this.attributes, props);
+    }
     delete this.attributes[this.key];
     if (!props || !props.silent) {
       validate = this.validate(props);
@@ -247,18 +256,14 @@ Flint.Model = (function() {
   };
 
   Model.prototype._destroy = function(id, callback) {
-    if (this.get(this.key)) {
-      this.attributes.key = this.key;
-      return this.responder.database.destroy(this.attributes, this.store, function(err, res) {
-        if (err && callback) {
-          return callback(err);
-        } else if (callback) {
-          return callback(null, this.attributes);
-        }
-      });
-    } else if (callback) {
-      return callback(new Error('Trying to destroy ' + this.store + ' record without the key attribute'));
-    }
+    var _this = this;
+    return this.responder.database.destroy(id, this.key, this.store, function(err, res) {
+      if (err) {
+        return callback(err);
+      } else {
+        return callback(null, _this.attributes);
+      }
+    });
   };
 
   Model.prototype.validate = function(attrs) {
@@ -316,8 +321,7 @@ Flint.Model = (function() {
         _ref2 = this.fields;
         for (column in _ref2) {
           options = _ref2[column];
-          console.log(this.store, options);
-          if (options.name) column = options.name;
+          if (options && options.name) column = options.name;
           if (column && prop.toString() === column) {
             cleaned[prop] = val;
             break;
@@ -328,6 +332,18 @@ Flint.Model = (function() {
     } else {
       return callback(null, this.attributes);
     }
+  };
+
+  Model.prototype.increment = function(field, callback) {
+    return this.responder.database.bump(this.store, field, 1, this.key, this.attributes[this.key], callback);
+  };
+
+  Model.prototype.decrement = function(field, callback) {
+    return this.responder.database.bump(this.store, field, -1, this.key, this.attributes[this.key], callback);
+  };
+
+  Model.prototype.bump = function(field, value, callback) {
+    return this.responder.database.bump(this.store, field, value, this.key, this.attributes[this.key], callback);
   };
 
   Model.prototype.find_related_models = function(results, callback) {
@@ -528,6 +544,7 @@ Flint.Mysql = (function() {
     this.objectify = __bind(this.objectify, this);
     this.stringify = __bind(this.stringify, this);
     this.query = __bind(this.query, this);
+    this.bump = __bind(this.bump, this);
     this.destroy = __bind(this.destroy, this);
     this.update = __bind(this.update, this);
     this.insert = __bind(this.insert, this);
@@ -624,20 +641,15 @@ Flint.Mysql = (function() {
     var id;
     id = object[key];
     delete object[key];
-    return this.connection.query('UPDATE ' + store + ' SET ? WHERE ' + key + ' = ' + this.connection.escape(id), object, function(err, res) {
-      if (callback) return callback(err, res);
-    });
+    return this.connection.query('UPDATE ' + store + ' SET ? WHERE ' + key + ' = ' + this.connection.escape(id), object, callback);
   };
 
-  Mysql.prototype.destroy = function(object, store, callback) {
-    var id, key;
-    id = object[object.key];
-    key = object.key;
-    delete object[object.key];
-    delete object.key;
-    return this.connection.query('DELETE FROM ' + store + ' WHERE ' + key + ' = ' + this.connection.escape(id), function(err, res) {
-      if (callback) return callback(err, res);
-    });
+  Mysql.prototype.destroy = function(id, key, store, callback) {
+    return this.connection.query('DELETE FROM ' + store + ' WHERE ' + key + ' = ' + this.connection.escape(id), callback);
+  };
+
+  Mysql.prototype.bump = function(store, field, value, key, id, callback) {
+    return this.connection.query('UPDATE ' + store + ' SET ' + field + '=' + field + '+' + value + ' WHERE ' + key + ' = ' + this.connection.escape(id), callback);
   };
 
   Mysql.prototype.query = function(query, callback) {
@@ -749,8 +761,8 @@ Flint.Responder = (function() {
     return true;
   };
 
-  Responder.prototype.after = function() {
-    return true;
+  Responder.prototype.after = function(response, data, credentials) {
+    return response;
   };
 
   Responder.prototype.get = function(data, credentials, callback) {
@@ -823,7 +835,8 @@ Flint.Responder = (function() {
   };
 
   Responder.prototype.notify = function(file, message, callback) {
-    var content, ent, hbs, mailer, template, transport;
+    var content, ent, fs, hbs, mailer, template, transport;
+    var _this = this;
     if (!message.from) message.from = this.config.mail_default_from;
     if (!message.text) {
       message.text = 'This is an HTML email. Please enable HTML in your mail client';
@@ -831,6 +844,7 @@ Flint.Responder = (function() {
     if (!message.to && !message.from) {
       callback(new Error('Both to: and from: address must be specified in message argument.'));
     }
+    fs = require('fs');
     hbs = this.require('hbs');
     ent = this.require('ent');
     content = fs.readFileSync(path.resolve(this.config.base + 'app/views/' + file), 'utf8');
@@ -845,7 +859,13 @@ Flint.Responder = (function() {
         pass: this.config.mail_password
       }
     });
-    return transport.sendMail(message, callback);
+    return transport.sendMail(message, function(err, res) {
+      if (err) {
+        return callback(err);
+      } else {
+        return callback(null, res);
+      }
+    });
   };
 
   Responder.prototype.finish = function() {
@@ -977,6 +997,8 @@ controllers.Objects = (function() {
     this.mail_testing = __bind(this.mail_testing, this);
     Objects.__super__.constructor.apply(this, arguments);
   }
+
+  Objects.prototype.api = true;
 
   Objects.prototype.mail_testing = function(data, credentials, callback) {
     var options;

@@ -26,12 +26,12 @@ class Responder
       
     this
     
-  # called before and after the primary request method.
+  # called before and after the primary request method, to deny access simply return false.
   before: ->
     true
     
-  after: ->
-    true
+  after: (response, data, credentials) ->
+    response
     
   # generic implementations of get, post, put and delete
   get: (data, credentials, callback) =>
@@ -83,9 +83,8 @@ class Responder
     model.destory data.id, callback
   
   
-  # notifies using the emailjs dep
+  # notifies using nodemailer 
   notify: (file, message, callback) =>
-    
     message.from = @config.mail_default_from if ! message.from
     message.text = 'This is an HTML email. Please enable HTML in your mail client' if !message.text
     if !message.to and !message.from
@@ -99,8 +98,7 @@ class Responder
     template = hbs.handlebars.compile(content)
     content = template(message)
     message.html = ent.decode(content)
-
-
+    
     # send via smtp configuration.
     mailer = @require 'nodemailer'
     transport = mailer.createTransport 'SMTP',
@@ -115,12 +113,14 @@ class Responder
       else
         callback null, res  
 
-
-
-
-  # closes the database connection  
+  
+  cookie: (credentials, key, value, options={}) =>
+    
+        
+  # closes the database connection, deletes the instance property  
   finish: =>
     @database.close_connection()
+    delete @database
     
   # resolves and requires path to where flint is installed when loading a flint module
   require: (module) =>

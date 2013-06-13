@@ -7,7 +7,8 @@ class Application extends Backbone.Router
     @isTouch        = navigator.userAgent.match(/(iPhone|iPod|iPad|Android|BlackBerry)/) 
     @isOnline       = navigator.onLine
     
-    # initialize storage helper, overrides backbone.sync, local, socket, ajax helper etc.
+    # initialize storage helper, overrides backbone.sync, local, socket.io, ajax helper etc.
+    # passing false to this constructor will disable socket.io
     @sync           = new Flint.Sync
     
     # notifications are great!

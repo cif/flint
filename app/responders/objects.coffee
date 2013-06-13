@@ -2,7 +2,8 @@
 
 class Objects extends Flint.Responder
   
-
+  api: true
+  
   mail_testing: (data, credentials, callback) =>
 
   	options =

@@ -1027,6 +1027,7 @@ Flint.Helpers = (function() {
       });
     }
     value = model && model.get && model.get(field) ? model.get(field) : '';
+    if (value === '' && model && model[field]) value = model[field];
     return new Handlebars.SafeString('<input type="text" name="' + field + '" value="' + value.replace(/"/g, '&quot;') + '" ' + attrs.join(' ') + '/>');
   };
 
@@ -1039,6 +1040,7 @@ Flint.Helpers = (function() {
       });
     }
     value = model && model.get && model.get(field) ? model.get(field) : '';
+    if (value === '' && model && model[field]) value = model[field];
     return new Handlebars.SafeString('<input name="' + field + '" value="' + value.replace(/"/g, '&quot;') + '" ' + attrs.join(' ') + '/>');
   };
 
@@ -1135,6 +1137,7 @@ Flint.Helpers = (function() {
       });
     }
     value = model && model.get && model.get(field) ? model.get(field) : '';
+    if (value === '' && model && model[field]) value = model[field];
     return new Handlebars.SafeString('<textarea name="' + field + '" ' + attrs.join(' ') + '>' + value + '</textarea>');
   };
 
@@ -1600,8 +1603,10 @@ Flint.Sync = (function() {
     this.broadcast = __bind(this.broadcast, this);
     this.on = __bind(this.on, this);
     Backbone.sync = this.backbone;
-    this.io = io.connect('http://' + location.host);
-    this.io.on('data', this.broadcast);
+    if (enable_socket_io) {
+      this.io = io.connect('http://' + location.host);
+      this.io.on('data', this.broadcast);
+    }
     this;
   }
 

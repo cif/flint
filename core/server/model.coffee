@@ -8,7 +8,8 @@ class Model
   # default key is assumed to be called id.
   key: 'id'
   
-  # holds model attributes for server side impl.
+  # holds model attributes for server side impl, 
+  # these get recyled in mem. need to destroy in constructor!
   attributes: { }
     
   # takes the reponder and an optional store if specified  
@@ -19,6 +20,7 @@ class Model
     throw new Error 'A store property was not specified for a Flint.Model instance' if !@store
       
     # defaults start as attributes
+    @attributes = {}
     if @defaults
       @attributes = @defaults
     
@@ -100,8 +102,10 @@ class Model
   # this way primary functions are easily overridable and only copy a line  
   
   _create:(props, callback) =>
-    # extend any additional properties passed to save
+    
+    # assume we are starting over from scratch if props are passed in
     if props
+      @attributes = {}
       @attributes = @extend(@attributes, props)
     
     # delete the id attribute to ensure a new instance 
@@ -172,6 +176,7 @@ class Model
         # automatic created_on storage
         if !cleaned.created_on and @stamp_create
           cleaned.created_on = @datetime()
+        
         @responder.database.insert cleaned, @key, @store, (err, res) =>
           if err and callback
             callback err
@@ -197,7 +202,6 @@ class Model
       
   # validate_fields method will use the fields and any valid:'RULES' specified 
   validate_fields: (attrs) ->
-    
     for field, options of @fields
       if options and options.valid
         rule = options.valid

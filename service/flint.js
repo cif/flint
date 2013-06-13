@@ -93,6 +93,7 @@ Flint.Model = (function() {
     if (!this.store) {
       throw new Error('A store property was not specified for a Flint.Model instance');
     }
+    this.attributes = {};
     if (this.defaults) this.attributes = this.defaults;
     this.set(options);
     this;
@@ -160,7 +161,10 @@ Flint.Model = (function() {
 
   Model.prototype._create = function(props, callback) {
     var validate;
-    if (props) this.attributes = this.extend(this.attributes, props);
+    if (props) {
+      this.attributes = {};
+      this.attributes = this.extend(this.attributes, props);
+    }
     delete this.attributes[this.key];
     if (!props || !props.silent) {
       validate = this.validate(props);
@@ -252,18 +256,14 @@ Flint.Model = (function() {
   };
 
   Model.prototype._destroy = function(id, callback) {
-    if (this.get(this.key)) {
-      this.attributes.key = this.key;
-      return this.responder.database.destroy(this.attributes, this.store, function(err, res) {
-        if (err && callback) {
-          return callback(err);
-        } else if (callback) {
-          return callback(null, this.attributes);
-        }
-      });
-    } else if (callback) {
-      return callback(new Error('Trying to destroy ' + this.store + ' record without the key attribute'));
-    }
+    var _this = this;
+    return this.responder.database.destroy(id, this.key, this.store, function(err, res) {
+      if (err) {
+        return callback(err);
+      } else {
+        return callback(null, _this.attributes);
+      }
+    });
   };
 
   Model.prototype.validate = function(attrs) {
@@ -321,7 +321,7 @@ Flint.Model = (function() {
         _ref2 = this.fields;
         for (column in _ref2) {
           options = _ref2[column];
-          if (optiosn && options.name) column = options.name;
+          if (options && options.name) column = options.name;
           if (column && prop.toString() === column) {
             cleaned[prop] = val;
             break;
@@ -644,12 +644,7 @@ Flint.Mysql = (function() {
     return this.connection.query('UPDATE ' + store + ' SET ? WHERE ' + key + ' = ' + this.connection.escape(id), object, callback);
   };
 
-  Mysql.prototype.destroy = function(object, store, callback) {
-    var id, key;
-    id = object[object.key];
-    key = object.key;
-    delete object[object.key];
-    delete object.key;
+  Mysql.prototype.destroy = function(id, key, store, callback) {
     return this.connection.query('DELETE FROM ' + store + ' WHERE ' + key + ' = ' + this.connection.escape(id), callback);
   };
 
@@ -766,8 +761,8 @@ Flint.Responder = (function() {
     return true;
   };
 
-  Responder.prototype.after = function() {
-    return true;
+  Responder.prototype.after = function(response, data, credentials) {
+    return response;
   };
 
   Responder.prototype.get = function(data, credentials, callback) {
@@ -840,7 +835,7 @@ Flint.Responder = (function() {
   };
 
   Responder.prototype.notify = function(file, message, callback) {
-    var content, ent, hbs, mailer, template, transport;
+    var content, ent, fs, hbs, mailer, template, transport;
     var _this = this;
     if (!message.from) message.from = this.config.mail_default_from;
     if (!message.text) {
@@ -849,6 +844,7 @@ Flint.Responder = (function() {
     if (!message.to && !message.from) {
       callback(new Error('Both to: and from: address must be specified in message argument.'));
     }
+    fs = require('fs');
     hbs = this.require('hbs');
     ent = this.require('ent');
     content = fs.readFileSync(path.resolve(this.config.base + 'app/views/' + file), 'utf8');
