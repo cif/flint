@@ -6,10 +6,9 @@ __extends = function(child, parent) { for (var key in parent) { if (__hasProp.ca
 
 Flint.Helpers = (function() {
 
-  function Helpers(handlebars) {
+  function Helpers(handlebars, config) {
     this.handlebars = handlebars;
-    this.require = __bind(this.require, this);
-    this.include = __bind(this.include, this);
+    this.config = config;
     this.handlebars.registerHelper('include', this.include);
     this.handlebars.registerHelper('cache_buster', this.cache_buster);
     this.handlebars.registerHelper('eq', this.eq);
@@ -32,24 +31,6 @@ Flint.Helpers = (function() {
     return JSON.stringify(object);
   };
 
-  Helpers.prototype.include = function(file, data) {
-    var content, decoded, ent, fs, hbs, template;
-    fs = require('fs');
-    ent = this.require('ent');
-    hbs = this.require('hbs');
-    content = fs.readFileSync(path.resolve(this.config.base + 'app/views/' + file), 'utf8');
-    if (data) {
-      template = hbs.handlebars.compile(content);
-      content = template(data);
-    }
-    decoded = ent.decode(content);
-    return new hbs.handlebars.SafeString(decoded);
-  };
-
-  Helpers.prototype.require = function(module) {
-    return require(path.resolve(this.config.flint_path + '/../node_modules/' + module));
-  };
-
   return Helpers;
 
 })();
@@ -62,7 +43,7 @@ Flint.Model = (function() {
 
   function Model(responder, options) {
     this.responder = responder;
-    if (options == null) options = {};
+    this.options = options;
     this.datetime = __bind(this.datetime, this);
     this.find_related = __bind(this.find_related, this);
     this.parse_relations = __bind(this.parse_relations, this);
@@ -161,10 +142,7 @@ Flint.Model = (function() {
 
   Model.prototype._create = function(props, callback) {
     var validate;
-    if (props) {
-      this.attributes = {};
-      this.attributes = this.extend(this.attributes, props);
-    }
+    if (props) this.attributes = this.extend(this.attributes, props);
     delete this.attributes[this.key];
     if (!props || !props.silent) {
       validate = this.validate(props);
@@ -730,12 +708,19 @@ Flint.Mysql = (function() {
 })();
 
 Flint.Responder = (function() {
+  var fs, mysql, path;
+
+  mysql = require('mysql');
+
+  path = require('path');
+
+  fs = require('fs');
 
   function Responder(config) {
-    var mysql;
     this.config = config;
     this.require = __bind(this.require, this);
     this.finish = __bind(this.finish, this);
+    this.cookie = __bind(this.cookie, this);
     this.notify = __bind(this.notify, this);
     this["delete"] = __bind(this["delete"], this);
     this.put = __bind(this.put, this);
@@ -743,7 +728,6 @@ Flint.Responder = (function() {
     this.get = __bind(this.get, this);
     if (this.config.db) {
       if (this.config.db.engine === 'mysql') {
-        mysql = this.require('mysql');
         this.connection = mysql.createConnection(this.config.db);
         this.connection.connect();
         if (!this.connection) {
@@ -831,11 +815,11 @@ Flint.Responder = (function() {
     model = new Instance(this, {
       store: this.default_store
     });
-    return model.destory(data.id, callback);
+    return model.destroy(data.id, callback);
   };
 
   Responder.prototype.notify = function(file, message, callback) {
-    var content, ent, fs, hbs, mailer, template, transport;
+    var content, ent, hbs, mailer, template, transport;
     var _this = this;
     if (!message.from) message.from = this.config.mail_default_from;
     if (!message.text) {
@@ -844,10 +828,9 @@ Flint.Responder = (function() {
     if (!message.to && !message.from) {
       callback(new Error('Both to: and from: address must be specified in message argument.'));
     }
-    fs = require('fs');
     hbs = this.require('hbs');
     ent = this.require('ent');
-    content = fs.readFileSync(path.resolve(this.config.base + 'app/views/' + file), 'utf8');
+    content = fs.readFileSync(path.resolve(this.config.base + 'app/layouts/' + file), 'utf8');
     template = hbs.handlebars.compile(content);
     content = template(message);
     message.html = ent.decode(content);
@@ -868,8 +851,13 @@ Flint.Responder = (function() {
     });
   };
 
+  Responder.prototype.cookie = function(credentials, key, value, options) {
+    if (options == null) options = {};
+  };
+
   Responder.prototype.finish = function() {
-    return this.database.close_connection();
+    this.database.close_connection();
+    return delete this.database;
   };
 
   Responder.prototype.require = function(module) {
@@ -881,7 +869,7 @@ Flint.Responder = (function() {
     if (!this.model && this.default_store) {
       this.model = this.default_store.singularize().camelize();
     }
-    Instance = this.model && models[this.model] ? models[this.model] : Flint.Model;
+    Instance = this.model && models && models[this.model] ? models[this.model] : Flint.Model;
     if (!Instance) {
       throw new Error('Flint.Model class ' + this.model + ' does not exist!');
     }

@@ -137,8 +137,7 @@ models.Widget = (function() {
   Widget.prototype.has_many = {
     objects: {
       order: 'sort_order ASC'
-    },
-    animals: null
+    }
   };
 
   Widget.prototype.belongs_to = 'owner';
@@ -150,10 +149,23 @@ models.Widget = (function() {
       type: 'varchar(255)',
       valid: 'not_empty'
     },
-    'size': null,
+    'size': {
+      type: 'varchar(255)',
+      valid: {
+        not_empty: true,
+        values: ['small', 'medium', 'large']
+      }
+    },
     'in_stock': null,
     'owner_id': {
       type: 'varchar(36)'
+    },
+    'description': {
+      valid: {
+        not_empty: true,
+        not: 'bad',
+        message: 'Custom description validation message'
+      }
     }
   };
 

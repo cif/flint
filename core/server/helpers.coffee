@@ -5,11 +5,10 @@
 
 class Helpers
   
-  constructor: (@handlebars) ->
+  constructor: (@handlebars, @config) ->
     
     # this is our way around the need to register partials
     @handlebars.registerHelper 'include', @include
-    
     @handlebars.registerHelper 'cache_buster', @cache_buster
     @handlebars.registerHelper 'eq', @eq
     @handlebars.registerHelper 'json', @json
@@ -26,18 +25,4 @@ class Helpers
   json: (object) ->
     JSON.stringify(object)
     
-  include: (file, data) =>
-    fs = require 'fs'
-    ent = @require 'ent'
-    hbs = @require 'hbs'
-    content = fs.readFileSync(path.resolve(@config.base + 'app/views/' + file), 'utf8')
-    if data
-      template = hbs.handlebars.compile(content)
-      content = template(data)
-    decoded = ent.decode(content)
-    return new hbs.handlebars.SafeString(decoded)
   
-  
-  # resolves and requires path to where flint is installed when loading a flint module
-  require: (module) =>
-    require path.resolve(@config.flint_path + '/../node_modules/' + module)    

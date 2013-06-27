@@ -40,7 +40,7 @@ helpers = helpers || Handlebars.helpers; data = data || {};
   
 
 
-  return "<form onsubmit=\"return false\"><h1>Create a new widget:</h1><button class=\"create\">Make widget</button></form>";
+  return "<form onsubmit=\"return false\">\n<h1>Create a new widget:</h1>\n<button class=\"create\">Make widget</button>\n</form>";
   });
 templates['widgets/list'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [3,'>= 1.0.0-rc.4'];

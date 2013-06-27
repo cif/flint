@@ -1,7 +1,15 @@
 #
 #  resonds to requests from the client
 #
+
+
+
+
 class Responder
+  
+  mysql = require 'mysql'
+  path = require 'path'
+  fs = require 'fs'
   
   # takes the flint.js configuration object as argument
   constructor: (@config) ->
@@ -10,12 +18,10 @@ class Responder
     if @config.db
       if @config.db.engine is 'mysql'
         # connect to mysql
-        mysql = @require 'mysql' 
         @connection = mysql.createConnection @config.db
         @connection.connect()
         if !@connection    
           throw new Error 'Unable to establish mysql database connection!'
-          
         @connection.query('USE ' + @config.db.database)
         @database = new Flint.Mysql @connection
         @database.isSql = true
@@ -80,8 +86,7 @@ class Responder
   delete: (data, credentials, callback) =>
     Instance = @__get_model_instance()
     model = new Instance @, store: @default_store
-    model.destory data.id, callback
-  
+    model.destroy data.id, callback
   
   # notifies using nodemailer 
   notify: (file, message, callback) =>
@@ -91,10 +96,10 @@ class Responder
       callback new Error 'Both to: and from: address must be specified in message argument.'
 
     # parse the mail template content
-    fs = require 'fs'
+    
     hbs = @require 'hbs'
     ent = @require 'ent'
-    content = fs.readFileSync(path.resolve(@config.base + 'app/views/' + file), 'utf8')
+    content = fs.readFileSync(path.resolve(@config.base + 'app/layouts/' + file), 'utf8')
     template = hbs.handlebars.compile(content)
     content = template(message)
     message.html = ent.decode(content)
@@ -132,7 +137,7 @@ class Responder
     # try to set a default model
     if !@model and @default_store
       @model = @default_store.singularize().camelize()
-    Instance = if @model and models[@model] then models[@model] else Flint.Model
+    Instance = if @model and models and models[@model] then models[@model] else Flint.Model
     if !Instance
       throw new Error 'Flint.Model class ' + @model + ' does not exist!'
     return Instance

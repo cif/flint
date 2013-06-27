@@ -124,7 +124,7 @@ fs = require('fs');
         } 
         
         /* 
-         todo - support other template engines... ?
+          todo - support other template engines... 
         */
         
         
@@ -132,11 +132,7 @@ fs = require('fs');
             
             data = fs.readFileSync(plates.templates[t].file, 'utf8');
             
-            // clean the templat comments up, it's getting compiled
-            data = data.replace(/<!--(.*?)-->/gm, "")
-                       .replace(/(\r\n|\n|\r)/gm,"");
-            
-						if( data > ''){					
+            if( data > ''){					
            	 // check for partial conventions
 	            if (plates.templates[t].namespace.indexOf('/_') > 0){            
 	              compiled = 'templates[\'' + plates.templates[t].namespace.replace(/\/_/,'_') + '\'] = template(' + compile_template(data, {}) + ');\n'

@@ -861,6 +861,7 @@ Flint.Helpers = (function() {
     this._get_cookie = __bind(this._get_cookie, this);
     this.cookie = __bind(this.cookie, this);
     this.after_transition = __bind(this.after_transition, this);
+    this.stop_then_delay = __bind(this.stop_then_delay, this);
     this.delay = __bind(this.delay, this);
     this.initialize = __bind(this.initialize, this);    Handlebars.registerHelper('eq', this.eq);
     Handlebars.registerHelper('check_role', this.check_role);
@@ -896,9 +897,13 @@ Flint.Helpers = (function() {
     return this.timer;
   };
 
+  Helpers.prototype.stop_then_delay = function(ms, func) {
+    window.clearTimeout(this.timer);
+    if (ms && func) return this.delay(ms, func);
+  };
+
   Helpers.prototype.after_transition = function(element, callback) {
     var events;
-    var _this = this;
     events = 'webkitTransitionEnd transitionend oTransitionEnd';
     $(element).unbind(events);
     return $(element).bind(events, function() {

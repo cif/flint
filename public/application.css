@@ -69,7 +69,7 @@ a:active {
 .docs .copy pre {
   display: block;
   margin: 0;
-  padding: 17px 0 0 0;
+  padding: 10px 15px;
   background: #fff;
   -webkit-border-radius: 10px;
   -moz-border-radius: 10px;

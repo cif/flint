@@ -32,7 +32,8 @@ cmd = require('child_process').exec;
 			cmd('rm -rf ' + dir + '/app/responders/docs.coffee')
 			cmd('rm -rf ' + dir + '/public/images/flow_diagram.png')
 			cmd('rm -rf ' + dir + '/app/stylus/docs.styl')
-			cmd('rm -rf ' + dir + '/app/views/docs/')
+			cmd('rm -rf ' + dir + '/app/html/docs/')
+			cmd('rm -rf ' + dir + '/app/html/layouts/docs.html')
 			
       console.log(color.green + '[builder] your new app "'+name+'" is ready!' + color.reset);
       

@@ -13,7 +13,7 @@ class Model
   attributes: { }
     
   # takes the reponder and an optional store if specified  
-  constructor: (@responder, options={}) ->
+  constructor: (@responder, @options) ->
     
     # set options
     @store = options.store if options.store
@@ -104,9 +104,7 @@ class Model
   _create:(props, callback) =>
     
     # assume we are starting over from scratch if props are passed in
-    if props
-      @attributes = {}
-      @attributes = @extend(@attributes, props)
+    @attributes = @extend(@attributes, props) if props
     
     # delete the id attribute to ensure a new instance 
     delete @attributes[@key]

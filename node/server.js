@@ -5,10 +5,12 @@ express = require('express');
 io = require('socket.io');
 http = require('http');
 path = require('path');
+inflector = require('./inflector');
+hbs = require('express-hbs');
 
 (function(){
 
-  var app, sock, config, responders, hbs;
+  var app, sock, config, responders, middleware;
 
   var setupRoutes = function(routes){
 
@@ -22,7 +24,7 @@ path = require('path');
 
     if(!routes['/']){   // if a default route hasn't been established by the application, render the index.
 
-      app.get('/', function(req, res){  res.render('index.html', {flint:config}); });
+      app.get('/', function(req, res){  res.render('index', {flint: config}); });
 
     }
     
@@ -47,6 +49,7 @@ path = require('path');
   var sendFinalResponse = function(err, res, response){
 
     response = response || {};
+    
     // set access control for cross domain requests, (could be true for errors as well)
     if(response.public){ res.header("Access-Control-Allow-Origin", "*"); }
 
@@ -57,7 +60,8 @@ path = require('path');
         // if our response is told emit to io, send it along.
         sock.sockets.emit('data', response.emit); 
 
-        // set response json to the data emitted (prevent circular reference).
+        // set response json to the data emitted 
+        // emit moves data into its own object to avoid circular references.
         response = response.emit.data;
 
       }
@@ -108,7 +112,9 @@ path = require('path');
 
   // simply relays the REST API request to the parsing method and adds response to final callback
   var respondToAppRequest = function(req, res){
-
+    
+    responders = require(path.resolve(config.base + 'service/responders'));
+    
     // asyncronous JSON responder 
     getApplicationResponse(req, res, function(err, response){
 
@@ -159,8 +165,6 @@ path = require('path');
     uri_parts.shift();
 
     // get controller class and the method to call using inflection
-    inflector = require('./inflector');
-    responders = require(path.resolve(config.base + 'service/responders'));
     controller = uri_parts[0].camelize();
     request_method = req.method.toLowerCase();
     method_to_call = uri_parts[1] ? uri_parts[1] : false;
@@ -244,8 +248,6 @@ path = require('path');
   var getCustomResponse = function(req, res, responder_method, callback){
     
     // get the controller 
-    inflector = require('./inflector');  // custom requests need the inflector too for ORM
-    responders = require(path.resolve(config.base + 'service/responders'));
     method = responder_method.split('.');
     controller = method[0];
 
@@ -312,7 +314,7 @@ path = require('path');
 
   var getRequestData = function(req, res){
 
-    data = {};
+    var data = {};
 
     // add any post body data
     for(obj in req.body){ data[obj] = req.body[obj]; }
@@ -330,7 +332,7 @@ path = require('path');
 
   var getRequestCredentials = function(req, res){
 
-    credentials = {};
+    var credentials = {};
 
     // push all request cookie values into the credentials
     for(obj in req.signedCookies){ credentials[obj] = req.signedCookies[obj]; }
@@ -343,11 +345,9 @@ path = require('path');
   }
 
   var setupRuntimeClasses = function(classes, config){
-
     responders = require(path.resolve(config.base + 'service/responders'));
     var c;
     for(c = 0; c < classes.length; c++){
-    
       inst = classes[c];
       if(responders.controllers[inst]){
         new responders.controllers[inst](config).init(sock.sockets, server);
@@ -360,7 +360,7 @@ path = require('path');
   // this method is called when watching for changes (dev mode)
   var respondersChanged = function(){
 
-    // clear the responders.js from require cache
+    // clear responders.js from require cache
     delete require.cache[path.resolve(config.base + 'service/responders.js')]
 
   };
@@ -381,23 +381,19 @@ path = require('path');
     app = express();
     server = http.createServer(app); 
 
-    // register handlebars are our wonderful templating engine
-    hbs = require('hbs');
-
     // register Flint.Helpers for server side app/views
     flint = require(path.resolve(config.base + 'service/flint'));
-    helpers = new Flint.Helpers(hbs);
-    helpers.config = config;
-
+    helpers = new Flint.Helpers(hbs, config);
+    
     // set our server side views to serve up handlebars
+    app.engine('html', hbs.express3(config.templating));
+    app.engine('xml', hbs.express3(config.templating));
     app.set('view engine', 'html');
-    app.set('views', path.resolve(config.base + 'app/views/'));
-    app.engine('html', hbs.__express);
-    app.engine('xml', hbs.__express);
-
+    app.set('views', path.resolve(config.base + 'app/html/'));
+    
     // make sure we are parsing requests and keeping active sessions
     app.use(express.bodyParser());
-    app.use(express.cookieParser('4hhh-s3cr3t!0@'));
+    app.use(express.cookieParser(config.cookie_parser_hash));
     app.use(express.session({secret: config.cookie_secret}));
     
     // start the socket server
