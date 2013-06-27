@@ -30,5 +30,8 @@
     "ent": "0.0.5",
     "async": "~0.2.8",
     "nodemailer": "~0.4.1"
+  },
+  "scripts": {
+    "test": "mocha"
   }
 }
