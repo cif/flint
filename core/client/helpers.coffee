@@ -226,7 +226,8 @@ class Helpers
       
     #leap year
     if month is 1
-      length = 29 unless (year % 4 is 0 and year % 100 is not 0) or year % 400 is 0
+      leap = new Date(year, 1, 29).getMonth() is 1
+      length = 29 unless !leap
       
     html = ''
     index = 1 - starts

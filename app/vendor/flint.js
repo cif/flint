@@ -1105,14 +1105,13 @@ Flint.Helpers = (function() {
   };
 
   Helpers.prototype.month_grid = function(month, year) {
-    var date, day, days_in_month, html, i, id_day, id_month, index, j, length, off_month, out, starts, _month, _year;
+    var date, day, days_in_month, html, i, id_day, id_month, index, j, leap, length, off_month, out, starts, _month, _year;
     days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     length = days_in_month[month];
     starts = new Date(year, month, 1).getDay();
     if (month === 1) {
-      if (!((year % 4 === 0 && year % 100 === !0) || year % 400 === 0)) {
-        length = 29;
-      }
+      leap = new Date(year, 1, 29).getMonth() === 1;
+      if (!!leap) length = 29;
     }
     html = '';
     index = 1 - starts;

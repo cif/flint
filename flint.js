@@ -55,8 +55,8 @@ exports.config = {
 	deploy_stylus_to: 'public/application.css',    
 
 	// templates
-	compile_templates_to: 'public/javascript/templates.js',
 	templates: 'app/handlebars',
+	compile_templates_to: 'public/javascript/templates.js',
 	template_engine: 'Handlebars',
 
 //  - server options --------------------------------

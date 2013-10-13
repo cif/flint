@@ -57,37 +57,45 @@ try {
  if(argv.compile || argv.watch || argv.package) {
     
     // dependencies - alphabetical load order matters, unfortunately.
-    depencency = {} 
-    depencency.in =  base + flint.config.dependencies
-    depencency.out = base + flint.config.compile_dependencies_to
-    depend = require('./dependency');
-    depend.on(depencency)
+    if(flint.config.dependencies){
+      depencency = {} 
+      depencency.in =  base + flint.config.dependencies
+      depencency.out = base + flint.config.compile_dependencies_to
+      depend = require('./dependency');
+      depend.on(depencency)
+    }
 
     // coffee destinations and template engine
-    maker = {}
-    maker.in = flint.config.coffeescript
-    maker.out = base + flint.config.compile_coffee_to
-    maker.base = base
-    maker.silent = argv.quiet
-    brewer = require('./brewer');
-    brewer.configure(maker)
+    if(flint.config.coffeescript){
+      maker = {}
+      maker.in = flint.config.coffeescript
+      maker.out = base + flint.config.compile_coffee_to
+      maker.base = base
+      maker.silent = argv.quiet
+      brewer = require('./brewer');
+      brewer.configure(maker)
+    }
 
-    // stylus
-    artist = {}
-    artist.in =  base + flint.config.stylus
-    artist.out = base + flint.config.compile_stylus_to
-    artist.silent = argv.quiet
-    styler = require('./styler');
-    styler.configure(artist)
+    if(flint.config.stylus){
+      // stylus
+      artist = {}
+      artist.in =  base + flint.config.stylus
+      artist.out = base + flint.config.compile_stylus_to
+      artist.silent = argv.quiet
+      styler = require('./styler');
+      styler.configure(artist)
+    }
 
     // templates 
-    plates = {}
-    plates.in =  base + flint.config.templates
-    plates.out = base + flint.config.compile_templates_to
-    plates.engine = flint.config.template_engine
-    plates.silent = argv.quiet
-    plater = require('./plater');
-    plater.configure(plates)
+    if(flint.config.templates){
+      plates = {}
+      plates.in =  base + flint.config.templates
+      plates.out = base + flint.config.compile_templates_to
+      plates.engine = flint.config.template_engine
+      plates.silent = argv.quiet
+      plater = require('./plater');
+      plater.configure(plates)
+    }
 
     // server side party, set up burner to do the work.
     if( argv.server ){
@@ -110,20 +118,20 @@ try {
     if ( argv.compile ) {
   
       // compile it up
-      depend.concat()
-      brewer.compile()
-      styler.compile()
-      plater.compile()
+      if(typeof depencency === 'object') depend.concat()
+      if(typeof coffeescript === 'object') brewer.compile()
+      if(typeof artist === 'object') styler.compile()
+      if(typeof plates === 'object') plater.compile()
   
     }
   
     if ( argv.watch ) {
   
       // watch and compile 
-      depend.watch()
-      brewer.watch()
-      styler.watch()
-      plater.watch()  
+      if(typeof depencency === 'object') depend.watch()
+      if(typeof coffeescript === 'object') brewer.watch()
+      if(typeof artist === 'object') styler.watch()
+      if(typeof plates === 'object') plater.watch()  
   
     }
     
@@ -146,8 +154,6 @@ try {
   
   // start the express server on the specified port
   if ( argv.server || argv.run){
-    
-    
     
     // if we aren't running the live show, get a new brewer instance ready to watch the front end. 
     if (!argv.run)
@@ -175,18 +181,9 @@ try {
     
     } else {
       
-      // generators
-      
-      
+      // TODO: generators ?
+        
     }
-    
-  }
-  
-  // migration tools (mysql only for now)
-  if ( argv.migrate ){
-    
-    migrator = require('./migrator');
-    
     
   }
   
@@ -194,7 +191,7 @@ try {
   if( argv.build ) {
       
      brewer = require('./brewer');
-    
+      
      if(argv.file){
         
         client_dest = flint.config.client_build_target ? base + flint.config.client_build_target : './app/vendor/flint.js'
@@ -214,7 +211,7 @@ try {
      coffee_maker.out = client_dest
      coffee_maker.build = true
      coffee_maker.template_engine = false
-		 //coffee_maker.minify = true
+		 //coffee_maker.minify = true  // ... no longer necessary because packaging minifies.
      brewer.configure(coffee_maker)
      brewer.compile()
      

@@ -243,7 +243,7 @@ fs = require('fs');
         
       } catch (e){
         
-        console.log(color.red + '[plater] ERROR! check to be sure your directories exist. ' + color.reset  + "\n");
+        console.log(color.red + '[plater] ERROR! Check to be sure your directories exist. You may also need to increase the machine ulimts. ' + color.reset  + "\n");
         if(plates.help)
           console.log(plates.help)
         
