@@ -4,6 +4,8 @@ class Calendar extends Backbone.View
     'click button.next' : 'next_month'
     'click button.previous' : 'previous_month'
     'click td.day' : 'date_clicked'
+    'click .month h3' : 'show_jumpers'
+    'change .month select' : 'make_jump'
   
   selected_dates:[]
   focus_date: false
@@ -34,7 +36,7 @@ class Calendar extends Backbone.View
     'December'
   ]
   
-  constructor: (@el='#calendar', @year, @month) ->
+  constructor: (@el='#calendar', @year, @month, @jumpable = true) ->
     @events = _.extend({}, @_events, @events)
     @$el = $(@el)
     @initialize(@year, @month)
@@ -126,6 +128,33 @@ class Calendar extends Backbone.View
     @set_focus_and_highlight()
     @trigger('prev', @)
   
+  #
+  #  renders select menus for jumping
+  #
+  show_jumpers: =>
+    years = [Number(@year)-10...Number(@year)+10]
+    html = '<select class="jump-month">'
+    for m in [0...11]
+      html += '<option value="'+m+'"'
+      html += ' selected' if m is Number(@month)
+      html += '>' + @month_labels[m] + '</option>'
+      
+    html += '</select><select class="jump-year">'
+    for y in years
+      html += '<option value="'+y+'"'
+      html += ' selected' if y is Number(@year)
+      html += '>' + y + '</option>'
+    html += '</select>'  
+    $(@el + ' .month h3').html html
+    
+  #
+  #  makes the jump on dropdown changes
+  #
+  make_jump: =>
+    @render $(@el + ' .jump-year').val(), $(@el + ' .jump-month').val() 
+    @set_focus_and_highlight()
+    @trigger('next', @)
+    
   #
   #  handles date click. adds date to selection and triggers select/deslect events
   #  

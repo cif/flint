@@ -11,7 +11,9 @@ Flint.Calendar = (function() {
   Calendar.prototype._events = {
     'click button.next': 'next_month',
     'click button.previous': 'previous_month',
-    'click td.day': 'date_clicked'
+    'click td.day': 'date_clicked',
+    'click .month h3': 'show_jumpers',
+    'change .month select': 'make_jump'
   };
 
   Calendar.prototype.selected_dates = [];
@@ -40,10 +42,13 @@ Flint.Calendar = (function() {
 
   Calendar.prototype.month_labels = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  function Calendar(el, year, month) {
+  function Calendar(el, year, month, jumpable) {
     this.el = el != null ? el : '#calendar';
     this.year = year;
     this.month = month;
+    this.jumpable = jumpable != null ? jumpable : true;
+    this.make_jump = __bind(this.make_jump, this);
+    this.show_jumpers = __bind(this.show_jumpers, this);
     this.set_focus_and_highlight = __bind(this.set_focus_and_highlight, this);
     this.set_focus_date = __bind(this.set_focus_date, this);
     this.events = _.extend({}, this._events, this.events);
@@ -135,6 +140,36 @@ Flint.Calendar = (function() {
     this.render(this.year, this.month);
     this.set_focus_and_highlight();
     return this.trigger('prev', this);
+  };
+
+  Calendar.prototype.show_jumpers = function() {
+    var html, m, y, years, _i, _j, _len, _ref, _ref2, _results;
+    years = (function() {
+      _results = [];
+      for (var _i = _ref = Number(this.year) - 10, _ref2 = Number(this.year) + 10; _ref <= _ref2 ? _i < _ref2 : _i > _ref2; _ref <= _ref2 ? _i++ : _i--){ _results.push(_i); }
+      return _results;
+    }).apply(this);
+    html = '<select class="jump-month">';
+    for (m = 0; m < 11; m++) {
+      html += '<option value="' + m + '"';
+      if (m === Number(this.month)) html += ' selected';
+      html += '>' + this.month_labels[m] + '</option>';
+    }
+    html += '</select><select class="jump-year">';
+    for (_j = 0, _len = years.length; _j < _len; _j++) {
+      y = years[_j];
+      html += '<option value="' + y + '"';
+      if (y === Number(this.year)) html += ' selected';
+      html += '>' + y + '</option>';
+    }
+    html += '</select>';
+    return $(this.el + ' .month h3').html(html);
+  };
+
+  Calendar.prototype.make_jump = function() {
+    this.render($(this.el + ' .jump-year').val(), $(this.el + ' .jump-month').val());
+    this.set_focus_and_highlight();
+    return this.trigger('next', this);
   };
 
   Calendar.prototype.date_clicked = function(e) {
@@ -643,9 +678,10 @@ Flint.Form = (function() {
 
   Form.prototype.label_click = function(e) {
     var input;
+    e.stopPropagation();
     input = $(e.target);
-    input.next().click();
-    return input.prev().click();
+    if (input.prev().get(0).tagName === 'INPUT') input.prev().click();
+    if (input.next().get(0).tagName === 'INPUT') return input.next().click();
   };
 
   Form.prototype.nosubmit = function() {
@@ -855,19 +891,22 @@ Flint.Grid = (function() {
 Flint.Helpers = (function() {
 
   function Helpers() {
+    this.pluralize = __bind(this.pluralize, this);
     this.js_to_slash = __bind(this.js_to_slash, this);
     this.sql_to_slash = __bind(this.sql_to_slash, this);
     this.date_format = __bind(this.date_format, this);
     this._get_cookie = __bind(this._get_cookie, this);
     this.cookie = __bind(this.cookie, this);
+    this.tree = __bind(this.tree, this);
     this.after_transition = __bind(this.after_transition, this);
     this.stop_then_delay = __bind(this.stop_then_delay, this);
     this.delay = __bind(this.delay, this);
     this.initialize = __bind(this.initialize, this);    Handlebars.registerHelper('eq', this.eq);
-    Handlebars.registerHelper('check_role', this.check_role);
+    Handlebars.registerHelper('contains', this.contains);
     Handlebars.registerHelper('link', this.link);
     Handlebars.registerHelper('link_nohref', this.link_nohref);
     Handlebars.registerHelper('list', this.list);
+    Handlebars.registerHelper('tree', this.tree);
     Handlebars.registerHelper('input', this.input);
     Handlebars.registerHelper('text_field', this.text_field);
     Handlebars.registerHelper('password', this.password);
@@ -882,6 +921,7 @@ Flint.Helpers = (function() {
     Handlebars.registerHelper('date_format', this.date_format);
     Handlebars.registerHelper('twenty_four_to_twelve', this.twenty_four_to_twelve);
     Handlebars.registerHelper('dollar', this.dollar);
+    Handlebars.registerHelper('pluralize', this.pluralize);
     Handlebars.registerHelper('random', this.random);
     Handlebars.registerHelper('sum', this.sum);
     Handlebars.registerHelper('truncate', this.truncate);
@@ -941,8 +981,33 @@ Flint.Helpers = (function() {
     return new Handlebars.SafeString(out);
   };
 
+  Helpers.prototype.tree = function(items, level, out, block) {
+    var _this = this;
+    if (level == null) level = 1;
+    if (!out) out = [];
+    if (level > 1 && items.length > 0) out.push('<ol>');
+    _.each(items, function(model) {
+      var attr;
+      attr = model.attributes ? model.attributes : model;
+      out.push('<li id="' + attr.id + '">');
+      out.push(block.fn(attr));
+      if (attr.children) _this.tree(attr.children, level + 1, out, block);
+      return out.push('</li>');
+    });
+    if (level > 1 && items.length > 0) out.push('</ol>');
+    return new Handlebars.SafeString(out.join(''));
+  };
+
   Helpers.prototype.eq = function(value, test, options) {
     if (value === test) {
+      return options.fn(this);
+    } else {
+      return options.inverse(this);
+    }
+  };
+
+  Helpers.prototype.contains = function(test, value, options) {
+    if ((value && test) && value.toString().indexOf(test.toString()) >= 0) {
       return options.fn(this);
     } else {
       return options.inverse(this);
@@ -1215,6 +1280,11 @@ Flint.Helpers = (function() {
     return sign + x + y + z;
   };
 
+  Helpers.prototype.pluralize = function(val, singular, plural) {
+    if (val > 1) return new Handlebars.SafeString(val + ' ' + plural);
+    return new Handlebars.SafeString(val + ' ' + singular);
+  };
+
   Helpers.prototype.repeater = function(x, y, block) {
     var max, min, num, out;
     min = parseInt(x);
@@ -1402,122 +1472,6 @@ Flint.Model = (function() {
   Model.prototype.validate_fields = function(attrs) {};
 
   return Model;
-
-})();
-
-Flint.Notifications = (function() {
-
-  __extends(Notifications, Backbone.View);
-
-  function Notifications() {
-    this.undo = __bind(this.undo, this);
-    this.dismiss = __bind(this.dismiss, this);
-    Notifications.__super__.constructor.apply(this, arguments);
-  }
-
-  Notifications.prototype.el = '#message';
-
-  Notifications.prototype.events = {
-    'click button.close': 'dismiss',
-    'click button.undo': 'undo'
-  };
-
-  Notifications.prototype.render = function(message, undo, dismiss, undo_text) {
-    var undo_callback;
-    if (undo == null) undo = false;
-    if (dismiss == null) dismiss = 'Close';
-    if (undo_text == null) undo_text = 'Undo';
-    undo_callback = _.isFunction(undo);
-    $(this.el).html(tmpl.notification({
-      message: message,
-      undo_callback: undo_callback,
-      dismiss: dismiss,
-      undo_text: undo_text
-    }));
-    return this;
-  };
-
-  Notifications.prototype.error = function(message, undo, callback) {
-    if (undo == null) undo = false;
-    if (callback == null) callback = false;
-    $(this.el).attr('class', 'error').css({
-      top: 0
-    });
-    this.render(message, undo);
-    return this.callback = callback;
-  };
-
-  Notifications.prototype.notify = function(message, undo, callback) {
-    if (undo == null) undo = false;
-    if (callback == null) callback = false;
-    $(this.el).attr('class', 'notice').css({
-      top: 0
-    });
-    this.render(message, undo, 'OK');
-    this.callback = callback;
-    return this.undo = undo;
-  };
-
-  Notifications.prototype.prompt_save = function(message, save) {
-    $(this.el).attr('class', 'notice').css({
-      top: 0
-    });
-    this.render(message, save, 'Save', 'Discard');
-    this.callback = save;
-    return this.undo = function() {};
-  };
-
-  Notifications.prototype.confirm = function(message, save) {
-    $(this.el).attr('class', 'notice').css({
-      top: 0
-    });
-    this.render(message, save, 'OK', 'Cancel');
-    this.callback = save;
-    return this.undo = function() {};
-  };
-
-  Notifications.prototype.warning = function(message, save) {
-    $(this.el).attr('class', 'error').css({
-      top: 0
-    });
-    this.render(message, save, 'OK', 'Cancel');
-    this.callback = save;
-    return this.undo = function() {};
-  };
-
-  Notifications.prototype.yes_or_no = function(message, save, cancel) {
-    if (cancel == null) cancel = false;
-    $(this.el).attr('class', 'notice').css({
-      top: 0
-    });
-    this.render(message, save, 'Yes', 'No');
-    this.callback = save;
-    return this.undo = cancel;
-  };
-
-  Notifications.prototype.warn_and_resolve = function(message, save, cancel) {
-    if (cancel == null) cancel = false;
-    $(this.el).attr('class', 'error').css({
-      top: 0
-    });
-    this.render(message, save, 'Yes', 'No');
-    this.callback = save;
-    return this.undo = cancel;
-  };
-
-  Notifications.prototype.dismiss = function(undo) {
-    $(this.el).css({
-      top: '-100px'
-    }).html('');
-    if (this.callback && !_.isUndefined(undo)) return this.callback();
-  };
-
-  Notifications.prototype.undo = function() {
-    this.dismiss();
-    if (this.undo) return this.undo(true);
-  };
-
-  return Notifications;
 
 })();
 

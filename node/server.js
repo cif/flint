@@ -1,5 +1,5 @@
 
-// server maps requests to the resources created by sourcer
+// server maps requests to the resources created by burner
 
 express = require('express');
 io = require('socket.io');
@@ -10,7 +10,7 @@ hbs = require('express-hbs');
 
 (function(){
 
-  var app, sock, config, responders, middleware;
+  var app, sock, config, flint, responders, middleware;
 
   var setupRoutes = function(routes){
 
@@ -112,8 +112,6 @@ hbs = require('express-hbs');
 
   // simply relays the REST API request to the parsing method and adds response to final callback
   var respondToAppRequest = function(req, res){
-    
-    responders = require(path.resolve(config.base + 'service/responders'));
     
     // asyncronous JSON responder 
     getApplicationResponse(req, res, function(err, response){
@@ -273,7 +271,7 @@ hbs = require('express-hbs');
         }
     
         // call the request_method on the controller
-        return_callback = function(err, res){
+        var return_callback = function(err, res){
 
           //wrap up the controler
           res = Controller.after(res, data, credentials);
@@ -345,7 +343,6 @@ hbs = require('express-hbs');
   }
 
   var setupRuntimeClasses = function(classes, config){
-    responders = require(path.resolve(config.base + 'service/responders'));
     var c;
     for(c = 0; c < classes.length; c++){
       inst = classes[c];
@@ -362,12 +359,12 @@ hbs = require('express-hbs');
 
     // clear responders.js from require cache
     delete require.cache[path.resolve(config.base + 'service/responders.js')]
-
+    responders = require(path.resolve(config.base + 'service/responders'));
+    
   };
 
-  // public API methods
+  // "public" methods  (configure, start)
   exports.configure = function(options){ config = options;  };
-
   exports.start = function(debug, watch){
 
     // if we're watching, look for changes in the app
@@ -380,9 +377,10 @@ hbs = require('express-hbs');
     // start the app server
     app = express();
     server = http.createServer(app); 
-
-    // register Flint.Helpers for server side app/views
+    
+    // register Flint.Helpers for server side app/views, require the responders
     flint = require(path.resolve(config.base + 'service/flint'));
+    responders = require(path.resolve(config.base + 'service/responders'));
     helpers = new Flint.Helpers(hbs, config);
     
     // set our server side views to serve up handlebars

@@ -109,9 +109,10 @@ class Form extends Backbone.View
   # this is called on all label tags and forces a click on the next and previous siblings.
   # useful for checkbox and radio labels, as well as clicking a form field label to focus.
   label_click: (e) ->
+    e.stopPropagation()
     input = $ e.target
-    input.next().click()
-    input.prev().click()
+    input.prev().click() if input.prev().get(0).tagName is 'INPUT'
+    input.next().click() if input.next().get(0).tagName is 'INPUT'
     
   # prevents form tags from being submited like back in the day when forms got sent to the server ; )
   nosubmit: ->

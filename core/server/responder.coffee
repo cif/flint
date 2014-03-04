@@ -2,9 +2,6 @@
 #  resonds to requests from the client
 #
 
-
-
-
 class Responder
   
   mysql = require 'mysql'
@@ -26,9 +23,9 @@ class Responder
         @database = new Flint.Mysql @connection
         @database.isSql = true
         
-      # TODO 
-      # a bunch of other database opts. 
-      # mongo or other nosql for document based apps  
+      # TODO: 
+      # other stroage options 
+      # mongo anyone?  
       
     this
     

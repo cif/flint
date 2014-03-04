@@ -210,10 +210,10 @@ fs = require('fs');
           
           if( info[0] == 'file' && (info[1].indexOf('.hb') > 0 || info[1].indexOf('.handlebars') > 0 || info[1].indexOf('.hbs') > 0 || info[1].indexOf('.html') > 0) ){
             
-            // watch the file
-            if(watch) {
-              watchers.push(fs.watch(info[1], fileHasChanged))
-            }
+            // watch the file, as of node ~ 0.10 watched directors fire change events when files within them are saved (at least on *nix) fire 
+            // if(watch) {
+             // watchers.push(fs.watch(info[1], fileHasChanged))
+            // }
             
             // get the template namespace by using the extra directory
             template_dir = plates.in.toString();
@@ -265,8 +265,7 @@ exports.watch = function(){
 
 exports.compile = function(){
   plates.watch = false;
-  readAndCompile(plates.in, false);
-  
+  readAndCompile(plates.in, false);  
 }
 
  

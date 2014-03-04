@@ -247,7 +247,6 @@ class Model
   
   
   # manipulation shortcuts
-  
   increment: (field, callback) =>
     @responder.database.bump @store, field, 1, @key, @attributes[@key], callback
 
@@ -257,9 +256,10 @@ class Model
   bump: (field, value, callback) =>
     @responder.database.bump @store, field, value, @key, @attributes[@key], callback
 
-  # object relationship modeling methods
+
+  # object relationship modeling methods  
   
-  # find_related_objects()
+  # find_related_models()
   # orm bridge, handles relationships and delegates finding to
   find_related_models: (results, callback) =>
     
@@ -425,7 +425,7 @@ class Model
   
   # utilities  
      
-  # quick and dirty non recusrive extend impl
+  # quick and dirty non recursive extend impl
   extend: (obj, source) ->
     for prop,value of source
       obj[prop] = value

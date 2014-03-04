@@ -5,11 +5,12 @@ class Helpers
     
     # register class methods with handlebars
     Handlebars.registerHelper 'eq', @eq
-    Handlebars.registerHelper 'check_role', @check_role
+    Handlebars.registerHelper 'contains', @contains
           
     Handlebars.registerHelper 'link', @link
     Handlebars.registerHelper 'link_nohref', @link_nohref
     Handlebars.registerHelper 'list', @list
+    Handlebars.registerHelper 'tree', @tree
       
     Handlebars.registerHelper 'input', @input
     Handlebars.registerHelper 'text_field', @text_field
@@ -27,6 +28,7 @@ class Helpers
     Handlebars.registerHelper 'twenty_four_to_twelve', @twenty_four_to_twelve
     
     Handlebars.registerHelper 'dollar', @dollar
+    Handlebars.registerHelper 'pluralize', @pluralize
     Handlebars.registerHelper 'random', @random
     Handlebars.registerHelper 'sum', @sum
     Handlebars.registerHelper 'truncate', @truncate
@@ -44,11 +46,12 @@ class Helpers
     @timer = setTimeout func, ms
     @timer
   
+  # clears the timeout @timer object prior to executing post another delay
   stop_then_delay: (ms, func) =>
     window.clearTimeout @timer
     @delay(ms, func) if ms and func
   
-  # waits for a css transition to complete before calling back  
+  # waits for a css transition to complete before calling back (note, this will unbind any events bound to the selector)  
   after_transition: (element, callback) =>
     # unbind current transitions
     events = 'webkitTransitionEnd transitionend oTransitionEnd'
@@ -64,7 +67,8 @@ class Helpers
       attrs.push key + '="' + value + '"'
     )
     new Handlebars.SafeString('<a href="'+href+'" ' + attrs.join(' ') + '>' + text + '</a>')
-    
+  
+  # voids return value for a link with no route mapping  
   link_nohref: (text, attributes) ->
     attrs = []
     _.map(attributes.hash, (value, key) -> 
@@ -72,6 +76,7 @@ class Helpers
     )
     new Handlebars.SafeString('<a href="javascript:void(0)" ' + attrs.join(' ') + '>' + text + '</a>')
   
+  # lists items but checks inside .attributes for backbone apps
   list: (context, zero_length_message, block) ->
     out = []
     _.each(context, (model) ->
@@ -81,6 +86,23 @@ class Helpers
     out = if out.length > 0 then out.join('') else zero_length_message
     new Handlebars.SafeString(out) 
   
+  # renders ordered recursive list (assumes attribute of .children present)
+  tree: (items, level = 1, out, block) =>
+    if !out 
+      out = []
+    if level > 1 and items.length > 0
+      out.push('<ol>')
+    _.each(items, (model) =>
+      attr = if model.attributes then model.attributes else model
+      out.push '<li id="'+attr.id+'">'
+      out.push(block.fn(attr))
+      if attr.children
+        @tree(attr.children, level+1, out, block)
+      out.push '</li>'
+    )
+    if level > 1 and items.length > 0
+      out.push('</ol>')
+    new Handlebars.SafeString out.join('')
   
   # equals test
   eq: (value, test, options) ->
@@ -89,8 +111,16 @@ class Helpers
     else
       return options.inverse(this)
 
+  # string contains another string
+  contains: (test, value, options) ->
+    if (value and test) and value.toString().indexOf(test.toString()) >= 0
+      return options.fn(this)
+    else
+      return options.inverse(this)
+      
   
-  # form field rendering helpers  
+  # ______ form field rendering helpers _______
+   
   text_field: (model, field, attributes) ->
     attrs = []
     _.map(attributes.hash, (value, key) -> 
@@ -191,7 +221,8 @@ class Helpers
     new Handlebars.SafeString('<textarea name="'+field+'" ' + attrs.join(' ') + '>'+value+'</textarea>')
   
     
-  # cookie helpers (not registered with handlebars)  
+  # ___ cookie helpers (not registered with handlebars) ____
+   
   cookie: (name, value, expires='', path='/', domain='') =>
     if _.isUndefined(value)
       return @_get_cookie(name)
@@ -216,8 +247,11 @@ class Helpers
         value = cookie.substring( locate.length + 1, cookie.length)
     value
 	  
+  
+  
     
   # ___________ date helpers ___________
+  
   month_grid: (month, year) ->
         
     days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
@@ -313,7 +347,9 @@ class Helpers
     y = js.getFullYear()
     m + '/' + d + '/' + y  
   
-  # misc formatting helpers
+  
+  
+  # _____ misc formatting helpers _______
   
   dollar: (n, decimals = 2, decimal_separator = ".", thousands_separator = ",", show_decimals=true) ->
     c = if isNaN(decimals) then 2 else Math.abs decimals
@@ -324,6 +360,11 @@ class Helpers
     y = i.substr(j).replace(/(\d{3})(?=\d)/g, "$1" + thousands_separator)
     z = if c and show_decimals then decimal_separator + Math.abs(n - i).toFixed(c).slice(2) else ''
     sign + x + y + z
+  
+  pluralize: (val, singular, plural) =>
+    if val > 1
+      return new Handlebars.SafeString(val + ' ' + plural)
+    return new Handlebars.SafeString(val + ' ' + singular)
   
   repeater: (x, y, block) ->
     min = parseInt(x)
