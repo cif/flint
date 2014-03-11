@@ -159,6 +159,5 @@ class Mysql
   uuid: =>
     @s4() + @s4() + '-' + @s4() + '-' + @s4() + '-' + @s4() + '-' + @s4() + @s4() + @s4()
   
-  
   close_connection: =>
     @connection.end()

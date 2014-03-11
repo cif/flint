@@ -4,16 +4,22 @@
 
 (function(){
   
+  var io_events = false;
+  // to employe more complex socket io_event broadcasting (emits), see docs.
+  // io_events = function(emit, callback){ }
+  
+
   // app - the express server instance
-  // socket - can be used to call emit
+  // socket - the socket server instance
   // config - the flint.js config object
-  // path - an instance of node path - common use:  require(path.resolve(config.base + 'service/module'))
+  // path - an instance of path to the application - e.g:  require(path.resolve(config.base + 'service/module'))
   exports.setup = function(app, socket, config, path){
   
-   /*
+  
+  /*
     example:
     
-    app.get('/route/:id', do_something_tricky_first, function(req, res){  
+    app.get('/route/:id', do_something_first, function(req, res){  
       res.status(200);
       res.send('Middleware works!');
     });
@@ -22,5 +28,7 @@
     
    
  };
+ 
+ exports.io_events = io_events;
   
 })()

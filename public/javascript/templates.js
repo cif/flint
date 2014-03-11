@@ -2,6 +2,14 @@
  var template = Handlebars.template, templates = Handlebars.templates = Handlebars.templates || {};
  Handlebars.partials = Handlebars.templates;
  var tmpl = Handlebars.templates; var tmpl_compile = Handlebars.compile;
+templates['month'] = template(function (Handlebars,depth0,helpers,partials,data) {
+  this.compilerInfo = [4,'>= 1.0.0'];
+helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
+  
+
+
+  return "test word up";
+  });
 templates['default/create'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
@@ -33,14 +41,6 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
 
 
   return "<h1>Default View / Form</h1>";
-  });
-templates['month'] = template(function (Handlebars,depth0,helpers,partials,data) {
-  this.compilerInfo = [4,'>= 1.0.0'];
-helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  
-
-
-  return "test word up";
   });
 templates['widgets/form'] = template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];

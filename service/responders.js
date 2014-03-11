@@ -717,6 +717,7 @@ Flint.Responder = (function() {
   fs = require('fs');
 
   function Responder(config) {
+    var _this = this;
     this.config = config;
     this.require = __bind(this.require, this);
     this.finish = __bind(this.finish, this);
@@ -733,9 +734,14 @@ Flint.Responder = (function() {
         if (!this.connection) {
           throw new Error('Unable to establish mysql database connection!');
         }
-        this.connection.query('USE ' + this.config.db.database);
-        this.database = new Flint.Mysql(this.connection);
-        this.database.isSql = true;
+        this.connection.query('USE ' + this.config.db.database, function(err, row, field) {
+          if (!err) {
+            _this.database = new Flint.Mysql(_this.connection);
+            return _this.database.isSql = true;
+          } else {
+            throw new Error('Database ' + _this.config.db.database + ' does not exist!');
+          }
+        });
       }
     }
     this;
@@ -856,8 +862,10 @@ Flint.Responder = (function() {
   };
 
   Responder.prototype.finish = function() {
-    this.database.close_connection();
-    return delete this.database;
+    if (this.database) {
+      this.database.close_connection();
+      return delete this.database;
+    }
   };
 
   Responder.prototype.require = function(module) {

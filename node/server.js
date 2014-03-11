@@ -57,11 +57,20 @@ hbs = require('express-hbs');
 
       if(response.emit){ 
 
-        // if our response is told emit to io, send it along.
-        sock.sockets.emit('data', response.emit); 
-
+        // more complicated applications (managed per account/user subscriptions etc.) should use middleware to manage emits
+        if(middleware.io_events){
+          
+          middleware.io_events(response);
+          
+        } else {
+          
+          // a simple event is emited with simple event:'name', data:{} (default behavior).
+          sock.sockets.emit('data', response.emit); 
+        
+        }
+        
         // set response json to the data emitted 
-        // emit moves data into its own object to avoid circular references.
+        // note: response object contains data as a property name in addition to the event name in order to avoid circular references.
         response = response.emit.data;
 
       }
@@ -73,7 +82,7 @@ hbs = require('express-hbs');
         res.status(403);
         res.send('Access denied');
 
-      // response wants to render a server view.
+      // response wants to render a server-side view.
       } else if (response.template) {
 
         response.flint = config;
@@ -89,7 +98,7 @@ hbs = require('express-hbs');
         res.status(200);
         res.render(response.xml, response);
       
-      // return default REST json back to our application	
+      // default return type is raw json data
       } else {
 
         res.set('Content-Type','application/json');
@@ -101,7 +110,6 @@ hbs = require('express-hbs');
     // return  error as a string with 500 status
     } else {
 
-
       res.set('Content-Type','text/plain');
       res.status(500);
       res.send(err.toString());
@@ -110,7 +118,7 @@ hbs = require('express-hbs');
 
   };
 
-  // simply relays the REST API request to the parsing method and adds response to final callback
+  // relays REST API requests to the appropriate responder method and sends to final callback
   var respondToAppRequest = function(req, res){
     
     // asyncronous JSON responder 
@@ -246,19 +254,19 @@ hbs = require('express-hbs');
   var getCustomResponse = function(req, res, responder_method, callback){
     
     // get the controller 
-    method = responder_method.split('.');
-    controller = method[0];
+    var method = responder_method.split('.');
+    var controller = method[0];
 
     if(responders.controllers[controller]){
 
       // instantantiate the controller
-      Controller = new responders.controllers[controller](config);
+      var Controller = new responders.controllers[controller](config);
 
-      method_to_call = method[1];
+      var method_to_call = method[1];
 
       // get request data and credentials
-      data = getRequestData(req, res);
-      credentials = getRequestCredentials(req, res);
+      var data = getRequestData(req, res);
+      var credentials = getRequestCredentials(req, res);
 
       if(Controller[method_to_call]) {
       
@@ -270,8 +278,15 @@ hbs = require('express-hbs');
     
         }
     
-        // call the request_method on the controller
-        var return_callback = function(err, res){
+        
+
+        // get the arguments to apply in an array
+        var arguments = [];
+        for(arg in req.params){
+          arguments.push(req.params[arg]);
+        }
+      
+        arguments.push(data, credentials, function(err, res){
 
           //wrap up the controler
           res = Controller.after(res, data, credentials);
@@ -280,15 +295,7 @@ hbs = require('express-hbs');
           // callback to deliver the response
           return callback(err, res);
 
-        };
-
-        // get the arguments to apply in an array
-        arguments = [];
-        for(arg in req.params){
-          arguments.push(req.params[arg]);
-        }
-      
-        arguments.push(data, credentials, return_callback);
+        });
 
         // call the controller
         Controller[method_to_call].apply(null, arguments);

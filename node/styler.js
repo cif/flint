@@ -120,8 +120,8 @@ fs = require('fs');
             
             if(list[l].indexOf('.styl') > 0){
               _files.push(dir + '/' + list[l])
-              if(watch) 
-                watchers.push(fs.watch(dir + '/' + list[l], fileHasChanged));
+              //if(watch) 
+                //watchers.push(fs.watch(dir + '/' + list[l], fileHasChanged));
             }
               
           }

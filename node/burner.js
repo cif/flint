@@ -247,12 +247,13 @@ fs = require('fs');
           if( info[0] == 'file' && info[1].indexOf('.coffee') > 0 ){
             
             // watch the file
-            if(watch) {
+            // as of node ~ 0.10 watched directories fire change events when files within them are saved (at least on *nix) 
+            //if(watch) {
               
-              watchers.push(fs.watch(info[1], fileHasChanged))
+              //watchers.push(fs.watch(info[1], fileHasChanged))
             
-            }
-            
+              //}
+              
             // get the template namespace by using the extra directory
             file_and_dir = info[1].substr( (info[1].indexOf(dir) + dir.length) + 1, info[1].length);
             namespaced = file_and_dir.replace(/\.coffee/,'');
@@ -322,8 +323,8 @@ fs = require('fs');
           })
           
            // watch the directory
-           if(watch)
-              watchers.push( fs.watch(dir, folderHasChanged) )
+           //if(watch)
+              //watchers.push( fs.watch(dir, folderHasChanged) )
           
           var files = fs.readdirSync(dir)
           for(var i = 0; i < files.length; i++){

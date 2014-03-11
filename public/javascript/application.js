@@ -36,7 +36,6 @@ controllers.Application = (function() {
     this.isTouch = navigator.userAgent.match(/(iPhone|iPod|iPad|Android|BlackBerry)/);
     this.isOnline = navigator.onLine;
     this.sync = new Flint.Sync;
-    this.notifications = new Flint.Notifications(this);
     this.helpers = new views.Helpers;
     this.controllers = [];
     if (console && console.log) console.log('[flint] Application initialized.');

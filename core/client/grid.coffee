@@ -167,7 +167,6 @@ class Grid extends Backbone.View
           b = moment(b)
           if isNaN(a.toDate().getTime())
             a = moment(0)
-            console.log a
           if isNaN(b.toDate().getTime())
             b = moment(0)
             

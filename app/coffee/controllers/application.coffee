@@ -10,14 +10,11 @@ class Application extends Backbone.Router
     # initialize storage helper, overrides backbone.sync, local, socket.io, ajax helper etc.
     # passing false to this constructor will disable socket.io
     @sync           = new Flint.Sync
-    
-    # notifications are great!
-    @notifications  = new Flint.Notifications @
      
     # initialize helpers
     @helpers        = new views.Helpers
    
-    # PLACE YOUR APP CONTROLLERS HERE.
+    # PLACE APP CONTROLLERS HERE.
     # be sure to pass @ so that Flint.Controllers can register themselves for binding/unbinding when switching
     @controllers    = []
     

@@ -846,10 +846,7 @@ Flint.Grid = (function() {
         if (b.indexOf('-') > 0) b = b.substring(0, b.indexOf(' -'));
         a = moment(a);
         b = moment(b);
-        if (isNaN(a.toDate().getTime())) {
-          a = moment(0);
-          console.log(a);
-        }
+        if (isNaN(a.toDate().getTime())) a = moment(0);
         if (isNaN(b.toDate().getTime())) b = moment(0);
       }
       if (this.sort_data_type === 'number') {

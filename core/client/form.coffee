@@ -81,7 +81,7 @@ class Form extends Backbone.View
     
   
   # save() is called when a DOM element with class="save" is clicked. it should be used in forms that intend to create
-  # a new model as opposed to done() which saves changes to an existing model.  
+  # a new model as opposed to done() which may save changes to an existing model.  
   # because the controller is listening for collection added event we need not broadcast anything
   save: ->
     @collection.add(@model)

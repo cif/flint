@@ -13,18 +13,22 @@ class Responder
     
     # check for database engine and require it as necessary
     if @config.db
+      
+      # mysql 
       if @config.db.engine is 'mysql'
         # connect to mysql
         @connection = mysql.createConnection @config.db
         @connection.connect()
         if !@connection    
           throw new Error 'Unable to establish mysql database connection!'
-        @connection.query('USE ' + @config.db.database)
-        @database = new Flint.Mysql @connection
-        @database.isSql = true
-        
-      # TODO: 
-      # other stroage options 
+        @connection.query 'USE ' + @config.db.database, (err, row, field) =>
+          if !err
+            @database = new Flint.Mysql @connection
+            @database.isSql = true
+          else
+            throw new Error 'Database ' + @config.db.database + ' does not exist!'
+      
+      # TODO: other stroage options 
       # mongo anyone?  
       
     this
@@ -118,16 +122,15 @@ class Responder
   
   cookie: (credentials, key, value, options={}) =>
     
-        
   # closes the database connection, deletes the instance property  
   finish: =>
-    @database.close_connection()
-    delete @database
+    if @database
+      @database.close_connection()
+      delete @database
     
   # resolves and requires path to where flint is installed when loading a flint module
   require: (module) =>
     require path.resolve(@config.flint_path + '/../node_modules/' + module) 
-  
   
   # returns an instance of a model class if the superclass defines one via string.
   __get_model_instance: ->
