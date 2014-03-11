@@ -5,10 +5,9 @@
 global.maxFilesInFlight = 500
 
 // deps
-optimist = require('optimist')
+handlebars = require('handlebars');
 uglify = require('uglify-js');
 fs = require('fs');
-
 
 (function(){
   
@@ -114,7 +113,7 @@ fs = require('fs');
        
         if (plates.engine == 'Handlebars') {
       
-          handlebars = require('handlebars');
+          
           output.push('\n var template = Handlebars.template, templates = Handlebars.templates = Handlebars.templates || {};');
           // there is probably a more graceful/efficient way of doing these, but it works a'ight
           output.push('\n Handlebars.partials = Handlebars.templates;');
