@@ -2,7 +2,7 @@
   "author": "Ben Ipsen <email@benipsen.com>",
   "name": "flint",
   "description": "Modern Development Toolkit",
-  "version": "0.0.99",
+  "version": "0.1.0",
   "repository": {
     "type": "git",
     "url": "http://github.com/cif/flint"
