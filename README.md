@@ -1,13 +1,5 @@
-## What is this?
-Flint started out as a project used to compile and coffeescript > javascript application, stylus > css, precompile templates etc. which is very similar to brunch.io. 
-Fast forward two years. Flint supports an **express server** and complied coffeescript "responders" providing **purely isomorphic data modeling**. 
-There's no reason the client and the server shouldn't **share model definitions, relationships and most importantly validation**.
-Think of "responders" as simply "server side controllers". They provide a super-thin default but have the ability to behave as any other controller in a Rails or PHP app would. 
-Files are watched and complied realtime into a node module just like your client-side apps compile into browser ready .js files.  
-On the client side, Flint utlizes **Backbone.js, Socket.IO, Handlebars and Stylus**
-
-## Where can I learn more?
-Documentation  [available online](http://useflint.org:3030/docs/) with plenty more coming very soon!
+## What is Flint?
+Flint's back end has moved to [Swell](https://github.com/cif/swell). The client side tools are in use so the repository will remain here, however this code base will no longer be maintained.
 
 ## License
 Permission is hereby granted, free of charge, to any person obtaining

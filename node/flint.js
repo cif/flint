@@ -6,7 +6,7 @@ path = require('path');
 
 // get optimist options
 argv = optimist
-  .usage('\nFlint.\nFull Stack Coffeescript/Node Development Framwork \n\CLI Usage:')
+  .usage('\nFlint.\nMake hot, hot fire. \n\CLI Usage:')
   .alias('n','new')
   .describe('n','Creates a new flint application of specified name')
   .alias('s','server')
@@ -46,10 +46,12 @@ try {
  if(!argv.new){
     
 	  try {
+      
     	flint = require(cwd + '/' + argv.file)
     	base = path.resolve(path.dirname(argv.file)) + '/'
 			flint.config.base = base
 			flint.config.flint_path = __dirname
+    
     } catch (e) { }
 
  }
