@@ -825,7 +825,7 @@ Flint.Responder = (function() {
   };
 
   Responder.prototype.notify = function(file, message, callback) {
-    var content, ent, hbs, mailer, template, transport;
+    var content, he, hbs, mailer, template, transport;
     var _this = this;
     if (!message.from) message.from = this.config.mail_default_from;
     if (!message.text) {
@@ -835,11 +835,11 @@ Flint.Responder = (function() {
       callback(new Error('Both to: and from: address must be specified in message argument.'));
     }
     hbs = this.require('hbs');
-    ent = this.require('ent');
+    he = this.require('he');
     content = fs.readFileSync(path.resolve(this.config.base + 'app/layouts/' + file), 'utf8');
     template = hbs.handlebars.compile(content);
     content = template(message);
-    message.html = ent.decode(content);
+    message.html = he.decode(content);
     mailer = this.require('nodemailer');
     transport = mailer.createTransport('SMTP', {
       service: this.config.mail_service,
